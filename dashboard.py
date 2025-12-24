@@ -128,6 +128,38 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# --- Footfall Tracker Logic ---
+def get_footfall():
+    """Tracks and increments website visits."""
+    count_file = "visitor_count.json"
+    
+    # Initialize session tracking to prevent refresh-counting
+    if 'counted' not in st.session_state:
+        st.session_state['counted'] = True
+        try:
+            if os.path.exists(count_file):
+                with open(count_file, "r") as f:
+                    data = json.load(f)
+                    total = data.get("total", 0) + 1
+            else:
+                total = 1
+            
+            with open(count_file, "w") as f:
+                json.dump({"total": total}, f)
+            return total
+        except:
+            return 0
+    else:
+        # Just read the current count
+        try:
+            if os.path.exists(count_file):
+                with open(count_file, "r") as f:
+                    data = json.load(f)
+                    return data.get("total", 0)
+        except:
+            pass
+        return 0
+
 # --- Market Sentiment Logic ---
 @st.cache_data(ttl=300) # Cache for 5 mins
 def get_market_sentiment():
@@ -299,6 +331,28 @@ with st.sidebar:
     st.header("⚙️ Settings")
     st.session_state['audio_enabled'] = st.checkbox("🔊 Enable Sound Alerts", value=True)
     st.divider()
+    
+    # Footfall Badge
+    total_visits = get_footfall()
+    st.markdown(f"""
+    <div style="
+        background: rgba(255, 255, 255, 0.05);
+        padding: 15px;
+        border-radius: 12px;
+        border: 1px solid rgba(0, 255, 0, 0.2);
+        text-align: center;
+        margin-top: 20px;
+        box-shadow: 0 4px 15px rgba(0,255,0,0.05);
+    ">
+        <div style="font-size: 10px; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px;">Global Footfall</div>
+        <div style="font-size: 24px; font-weight: 800; color: #00FF00; text-shadow: 0 0 10px rgba(0,255,0,0.3);">
+            {total_visits:,}
+        </div>
+        <div style="font-size: 10px; color: #00FF00; opacity: 0.8; margin-top: 5px;">
+             👁️ Professional Sessions
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 page = st.session_state['current_page']
 
