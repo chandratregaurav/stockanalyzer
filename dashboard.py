@@ -149,9 +149,6 @@ POPULAR_STOCKS = [
 with st.sidebar:
     st.header("⚙️ Controls")
     st.session_state['audio_enabled'] = st.checkbox("🔊 Enable Sound Alerts", value=True)
-    st.session_state['exchange'] = st.radio("Select Exchange", ["NSE", "BSE"], horizontal=True)
-    st.divider()
-    
     st.divider()
 # --- Sidebar Navigation Logic (Robust) ---
 nav_options = ["🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)", "📊 Portfolio & Analytics"]
@@ -285,12 +282,18 @@ if page == "Home":
         st.write("Always wait for confirmation from the **EMA Cloud** before entering a trade on a breakout star.")
 
 elif page == "🔍 Deep Analyzer":
-    # --- Sidebar Inputs (Search Only) ---
-    with st.sidebar:
-        st.header("Stock Selection")
-        # Ticker Selection & Search
-        st.write("### 🔍 Search Stock")
-        
+    # --- Main Screen Configuration (Consolidated Search & Period) ---
+    st.header(f"🔍 Deep Analyzer")
+    
+    # 1. Search & Exchange Row
+    sc1, sc2, sc3 = st.columns([1, 2, 2])
+    
+    with sc1:
+        st.write("**🏛️ Exchange**")
+        st.session_state['exchange'] = st.radio("Exchange", ["NSE", "BSE"], horizontal=True, label_visibility="collapsed")
+    
+    with sc2:
+        st.write("**🔍 Search Name**")
         # Get target ticker or default
         ticker_val = st.session_state.get('ticker_target', "")
         
@@ -313,36 +316,40 @@ elif page == "🔍 Deep Analyzer":
             index=select_idx,
             key="master_search",
             on_change=sync_from_list,
-            help="Type to search through 500+ Indian stocks"
+            label_visibility="collapsed"
         )
 
+    with sc3:
+        st.write("**⌨️ Manual Ticker**")
         ticker_input_raw = st.text_input(
             "Ticker (e.g. RELIANCE)", 
             value=ticker_val if ticker_val else "",
             key="manual_ticker",
-            help="Characters appear in UPPERCASE as you type!"
+            label_visibility="collapsed"
         ).upper()
         
-        clean_manual = ticker_input_raw.split('.')[0]
-        if clean_manual in TICKER_MAP:
-             st.caption(f"✨ Detected: **{TICKER_MAP[clean_manual]}**")
-
-        if 'ticker_target' in st.session_state:
-            del st.session_state['ticker_target']
-        
-        if ticker_input_raw:
+    # Process Ticker
+    if ticker_input_raw:
+        suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
+        ticker_input = ticker_input_raw if "." in ticker_input_raw else f"{ticker_input_raw}{suffix}"
+    else:
+        if st.session_state.get('master_search'):
+            sym = st.session_state['master_search'].split(' - ')[0]
             suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
-            ticker_input = ticker_input_raw if "." in ticker_input_raw else f"{ticker_input_raw}{suffix}"
+            ticker_input = f"{sym}{suffix}"
         else:
-            if st.session_state.get('master_search'):
-                sym = st.session_state['master_search'].split(' - ')[0]
-                suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
-                ticker_input = f"{sym}{suffix}"
-            else:
-                ticker_input = "RELIANCE.NS"
+            ticker_input = "RELIANCE.NS"
 
-    # --- Main Screen Configuration (Relocated) ---
-    st.header(f"🔍 Deep Analyzer: **{ticker_input}**")
+    if 'ticker_target' in st.session_state:
+        del st.session_state['ticker_target']
+
+    clean_manual = ticker_input_raw.split('.')[0]
+    if clean_manual in TICKER_MAP:
+         st.caption(f"✨ Detected: **{TICKER_MAP[clean_manual]}**")
+    
+    st.write("") # Spacer
+
+    # --- Main Screen Configuration (Execution) ---
     
     # ⏱️ Quick Period Row
     c_p, c_d = st.columns([2, 1])
