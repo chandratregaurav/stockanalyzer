@@ -465,47 +465,50 @@ elif page == "💎 Potential Multibaggers":
     
     with strat_col2:
         st.write("") # Spacer
-        run_scan = st.button("🚀 Run Strategy Scan", type="primary", use_container_width=True)
+        if st.button("🚀 Run Strategy Scan", type="primary", use_container_width=True):
+            with st.spinner(f"Executing {selected_strat} on 500+ Indian Stocks..."):
+                screener = StockScreener([s['symbol'] for s in TICKER_DB])
+                candidates = screener.get_multibagger_candidates(limit=10, strategy=selected_strat)
+                st.session_state['multibagger_results'] = candidates
+                st.session_state['last_multibagger_strat'] = selected_strat
 
-    if run_scan:
-        with st.spinner(f"Executing {selected_strat} on 500+ Indian Stocks..."):
-            screener = StockScreener([s['symbol'] for s in TICKER_DB])
-            # Map choice to backend key
-            strat_key = selected_strat.split(' (')[0] if '(' in selected_strat else selected_strat.split(' (')[0]
-            candidates = screener.get_multibagger_candidates(limit=10, strategy=selected_strat)
-            
-            if candidates:
-                st.write(f"### 💎 Top 10 Multibagger Recommendations")
-                st.markdown("---")
-                # 2-Column Grid for 10 items
-                for i in range(0, len(candidates), 2):
-                    cols = st.columns(2)
-                    chunk = candidates[i:i+2]
-                    for j, stock in enumerate(chunk):
-                        with cols[j]:
-                            st.markdown(f"""
-                            <div style="background: rgba(255,255,255,0.03); padding: 25px; border-radius: 15px; border: 1px solid rgba(0, 255, 0, 0.2); min-height: 200px; margin-bottom: 20px;">
-                                <div style="display: flex; justify-content: space-between; align-items: start;">
-                                    <h2 style="color: #00FF00; margin: 0;">{stock['ticker']}</h2>
-                                    <div style="font-size: 14px; font-weight: bold; background: rgba(0,255,0,0.15); padding: 5px 12px; border-radius: 20px; color: #00FF00;">
-                                        {stock['score']}% Signal
-                                    </div>
-                                </div>
-                                <div style="font-size: 16px; opacity: 0.9; margin: 10px 0;">Current Price: **₹{stock['current_price']:.2f}**</div>
-                                <div style="font-size: 13px; color: #AAA; line-height: 1.6;">
-                                    {" • ".join(stock['reasons'])}
-                                </div>
+    if st.session_state.get('multibagger_results'):
+        candidates = st.session_state['multibagger_results']
+        current_strat = st.session_state.get('last_multibagger_strat', "selected")
+        
+        st.write(f"### 💎 Top 10 Multibagger Recommendations ({current_strat})")
+        st.markdown("---")
+        # 2-Column Grid for 10 items
+        for i in range(0, len(candidates), 2):
+            cols = st.columns(2)
+            chunk = candidates[i:i+2]
+            for j, stock in enumerate(chunk):
+                with cols[j]:
+                    st.markdown(f"""
+                    <div style="background: rgba(255,255,255,0.03); padding: 25px; border-radius: 15px; border: 1px solid rgba(0, 255, 0, 0.2); min-height: 200px; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <h2 style="color: #00FF00; margin: 0;">{stock['ticker']}</h2>
+                            <div style="font-size: 14px; font-weight: bold; background: rgba(0,255,0,0.15); padding: 5px 12px; border-radius: 20px; color: #00FF00;">
+                                {stock['score']}% Signal
                             </div>
-                            """, unsafe_allow_html=True)
-                            
-                            if st.button(f"Analyze {stock['ticker']}", key=f"multi_{stock['ticker']}", use_container_width=True):
-                                st.session_state['ticker_target'] = stock['ticker']
-                                st.session_state['page_target'] = "🔍 Deep Analyzer"
-                                st.session_state['trigger_analyze'] = True 
-                                st.rerun()
-                st.success("Multibagger logic check successful for 10 candidates.")
-            else:
-                st.warning("No clear multibagger setups detected today. Markets might be in a cool-down phase.")
+                        </div>
+                        <div style="font-size: 16px; opacity: 0.9; margin: 10px 0;">Current Price: **₹{stock['current_price']:.2f}**</div>
+                        <div style="font-size: 13px; color: #AAA; line-height: 1.6;">
+                            {" • ".join(stock['reasons'])}
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    if st.button(f"Analyze {stock['ticker']}", key=f"multi_{stock['ticker']}", use_container_width=True):
+                        st.session_state['ticker_target'] = stock['ticker']
+                        st.session_state['page_target'] = "🔍 Deep Analyzer"
+                        st.session_state['trigger_analyze'] = True 
+                        st.rerun()
+        st.success("Multibagger logic check successful for 10 candidates.")
+            
+        if st.button("🗑️ Clear Results"):
+            del st.session_state['multibagger_results']
+            st.rerun()
     else:
         st.write("Click the button above to start the professional-grade scan.")
 
