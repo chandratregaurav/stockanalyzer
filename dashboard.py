@@ -71,20 +71,28 @@ with st.sidebar:
     st.header("⚙️ Controls")
     st.session_state['audio_enabled'] = st.checkbox("🔊 Enable Sound Alerts", value=True)
     st.divider()
-# --- Sidebar Navigation Logic ---
+# --- Sidebar Navigation Logic (Robust) ---
 nav_options = ["🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)"]
 
-# Initialize target page if not set
-if 'page_target' not in st.session_state:
-    st.session_state['page_target'] = nav_options[0]
+# Key-Rotation Pattern: Bypasses Streamlit's internal widget state
+if 'nav_key' not in st.session_state:
+    st.session_state['nav_key'] = 0
 
-# Calculate index for radio
-try:
-    nav_index = nav_options.index(st.session_state['page_target'])
-except:
+if 'page_target' in st.session_state:
+    # Programmatic navigation requested!
+    st.session_state['nav_key'] += 1 # Change key to force widget refresh
+    try:
+        nav_index = nav_options.index(st.session_state['page_target'])
+    except:
+        nav_index = 0
+else:
     nav_index = 0
 
-page = st.sidebar.radio("Navigation", nav_options, index=nav_index)
+page = st.sidebar.radio("Navigation", nav_options, index=nav_index, key=f"nav_radio_{st.session_state['nav_key']}")
+
+# Cleanup target after it influenced the widget
+if 'page_target' in st.session_state:
+    del st.session_state['page_target']
 
 if page == "🔍 Deep Analyzer":
     # --- Sidebar Inputs for Analyzer ---
@@ -96,7 +104,12 @@ if page == "🔍 Deep Analyzer":
         # Get target ticker or default
         ticker_val = st.session_state.get('ticker_target', "")
         
-        ticker_input = st.text_input(
+        # Selectbox index logic
+        select_idx = 0
+        if ticker_val in POPULAR_STOCKS:
+            select_idx = POPULAR_STOCKS.index(ticker_val)
+
+        ticker_input_raw = st.text_input(
             "Enter Ticker (e.g. RELIANCE.NS)", 
             value=ticker_val
         ).upper()
@@ -108,12 +121,11 @@ if page == "🔍 Deep Analyzer":
         ticker_suggestion = st.selectbox(
             "Or Select from Popular",
             POPULAR_STOCKS,
-            index=0
+            index=select_idx
         )
         
-        # Priority: Typed Input > Suggestion
-        if not ticker_input:
-            ticker_input = ticker_suggestion
+        # Priority: Typed Input > Suggestion (if different)
+        ticker_input = ticker_input_raw if ticker_input_raw else ticker_suggestion
         
         # Date Selection
         c1, c2 = st.columns(2)
