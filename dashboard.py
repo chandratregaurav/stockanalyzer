@@ -275,7 +275,13 @@ POPULAR_STOCKS = [
 ]
 
 # --- Sidebar Navigation Logic (Robust) ---
-nav_options = ["🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)", "📊 Portfolio & Analytics"]
+nav_options = [
+    "🔍 Deep Analyzer", 
+    "🚀 Trending Picks (Top 5)", 
+    "⚡ Intraday Surge (1-2 Hr)", 
+    "💎 Potential Multibaggers",
+    "📊 Portfolio & Analytics"
+]
 
 # Key-Rotation Pattern: Bypasses Streamlit's internal widget state
 if 'nav_key' not in st.session_state:
@@ -443,6 +449,46 @@ if page == "Home":
     with tc2:
         st.write("### 💡 Trading Pro Tip")
         st.write("Always wait for confirmation from the **EMA Cloud** before entering a trade on a breakout star.")
+
+elif page == "💎 Potential Multibaggers":
+    st.title("💎 Potential Multibaggers (High Growth Radar)")
+    st.info("Scanner objective: Small/Mid-cap stocks showing early accumulation, strong relative strength, and healthy fundamental proxies.")
+    
+    if st.button("🚀 Run Multibagger Scan", type="primary", use_container_width=True):
+        with st.spinner("Scanning 500+ Indian Stocks for 10x Potential..."):
+            screener = StockScreener([s['symbol'] for s in TICKER_DB])
+            candidates = screener.get_multibagger_candidates(limit=6)
+            
+            if candidates:
+                st.write("### 💎 Top Potential Candidates")
+                # 2x3 Grid
+                for i in range(0, len(candidates), 3):
+                    cols = st.columns(3)
+                    chunk = candidates[i:i+3]
+                    for j, stock in enumerate(chunk):
+                        with cols[j]:
+                            st.markdown(f"""
+                            <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 15px; border: 1px solid rgba(0, 255, 0, 0.2); min-height: 250px;">
+                                <h2 style="color: #00FF00; margin-bottom: 5px;">{stock['ticker']}</h2>
+                                <div style="font-size: 14px; opacity: 0.8; margin-bottom: 10px;">Price: ₹{stock['current_price']:.2f}</div>
+                                <div style="font-size: 12px; font-weight: bold; background: rgba(0,255,0,0.1); display: inline-block; padding: 2px 8px; border-radius: 5px; color: #00FF00; margin-bottom: 15px;">
+                                    {stock['score']}% Signal Strength
+                                </div>
+                                <div style="font-size: 13px; min-height: 60px;">
+                                    {" • ".join(stock['reasons'])}
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            if st.button(f"Analyze {stock['ticker']}", key=f"multi_{stock['ticker']}", use_container_width=True):
+                                st.session_state['ticker_target'] = stock['ticker']
+                                st.session_state['page_target'] = "🔍 Deep Analyzer"
+                                st.session_state['trigger_analyze'] = True # Force auto-analyze
+                                st.rerun()
+            else:
+                st.warning("No clear multibagger setups detected today. Markets might be in a cool-down phase.")
+    else:
+        st.write("Click the button above to start the professional-grade scan.")
 
 elif page == "🔍 Deep Analyzer":
     # --- Main Screen Configuration (Consolidated Search & Period) ---

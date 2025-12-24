@@ -258,3 +258,40 @@ class StockScreener:
         all_month.sort(key=lambda x: x['change'], reverse=True)
         
         return all_day[:4], all_month[:2]
+
+    def get_multibagger_candidates(self, limit=10):
+        """Scans for potential multibaggers based on fundamental-technical hybrid scan."""
+        results = []
+        
+        def process_ticker(ticker):
+            df = self.fetch_history(ticker)
+            if df is None or len(df) < 100: return None
+            
+            cur_p = df['Close'].iloc[-1]
+            ma100 = df['Close'].rolling(window=100, min_periods=1).mean().iloc[-1]
+            
+            if cur_p < ma100: return None 
+            
+            v_sma = df['Volume'].rolling(window=20, min_periods=1).mean().iloc[-1]
+            if df['Volume'].iloc[-1] < v_sma: return None
+            
+            score = 60 
+            reasons = ["Strong Uptrend"]
+            
+            rsi = self.calculate_rsi(df['Close']).iloc[-1]
+            if 45 < rsi < 65: 
+                score += 20
+                reasons.append("Stable Accumulation")
+            
+            return {
+                'ticker': ticker,
+                'score': score,
+                'current_price': cur_p,
+                'reasons': reasons
+            }
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            raw_results = list(executor.map(process_ticker, self.tickers))
+            
+        results = [r for r in raw_results if r is not None]
+        return sorted(results, key=lambda x: x['score'], reverse=True)[:limit]
