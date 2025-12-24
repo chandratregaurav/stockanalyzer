@@ -56,6 +56,39 @@ st.markdown("""
         font-size: 16px;
         font-weight: bold;
     }
+    
+    /* Navigation Sidebar Custom Styling */
+    .stButton > button {
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        text-align: left;
+        padding: 10px 15px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.05);
+        color: rgba(255,255,255,0.8);
+        width: 100%;
+        margin-bottom: 5px;
+        animation: slideIn 0.5s ease forwards;
+        opacity: 0;
+    }
+    @keyframes slideIn {
+        from { transform: translateX(-20px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    .stButton > button:hover {
+        background: rgba(0, 255, 0, 0.1);
+        border-color: rgba(0, 255, 0, 0.4);
+        transform: translateX(5px);
+        color: #00FF00;
+        box-shadow: 0 0 15px rgba(0, 255, 0, 0.1);
+    }
+    .active-nav > div > button {
+        background: rgba(0, 255, 0, 0.15) !important;
+        border-color: rgba(0, 255, 0, 0.6) !important;
+        color: #00FF00 !important;
+        font-weight: bold !important;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.2) !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -145,11 +178,6 @@ POPULAR_STOCKS = [
     "VBL.NS", "TRENT.NS", "COALINDIA.NS", "ONGC.NS", "SUNPHARMA.NS"
 ]
 
-# --- Sidebar Navigation ---
-with st.sidebar:
-    st.header("⚙️ Controls")
-    st.session_state['audio_enabled'] = st.checkbox("🔊 Enable Sound Alerts", value=True)
-    st.divider()
 # --- Sidebar Navigation Logic (Robust) ---
 nav_options = ["🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)", "📊 Portfolio & Analytics"]
 
@@ -172,24 +200,41 @@ else:
     if 'current_page' not in st.session_state:
         st.session_state['current_page'] = "Home"
 
+# --- Sidebar Content ---
 with st.sidebar:
-    if st.button("🏠 Home / Market Hub", use_container_width=True):
+    st.write("### 🧭 Navigation")
+    
+    # Home Button
+    is_home = (st.session_state['current_page'] == "Home")
+    if is_home:
+        st.markdown('<div class="active-nav">', unsafe_allow_html=True)
+    if st.button("🏠 Home / Market Hub", key="btn_home", use_container_width=True):
         st.session_state['current_page'] = "Home"
         st.rerun()
-    
-    # Logic to sync radio with current_page if it's in nav_options
-    try:
-        r_idx = nav_options.index(st.session_state['current_page'])
-    except:
-        r_idx = 0 # Default to Deep Analyzer if Home is active (but we won't show radio highlight if current_page == Home)
+    if is_home:
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+    st.write("") # Spacer
 
-    # Use a dummy key if Home is current to avoid radio conflicting
-    page_radio = st.radio("Navigation", nav_options, index=r_idx, key=f"nav_radio_{st.session_state['nav_key']}")
+    # Navigation Options
+    for opt in nav_options:
+        is_active = (st.session_state['current_page'] == opt)
+        if is_active:
+            st.markdown('<div class="active-nav">', unsafe_allow_html=True)
+        
+        if st.button(opt, key=f"btn_{opt}", use_container_width=True):
+            st.session_state['current_page'] = opt
+            st.rerun()
+            
+        if is_active:
+            st.markdown('</div>', unsafe_allow_html=True)
+
+    st.divider()
     
-    # If radio changes and it's NOT just the sync above, update current_page
-    if page_radio != st.session_state.get('current_page'):
-        if st.session_state['current_page'] != "Home" or page_radio != nav_options[0]: # Rough logic to let radio take over
-             st.session_state['current_page'] = page_radio
+    # Controls (Sound Alerts etc)
+    st.header("⚙️ Settings")
+    st.session_state['audio_enabled'] = st.checkbox("🔊 Enable Sound Alerts", value=True)
+    st.divider()
 
 page = st.session_state['current_page']
 
