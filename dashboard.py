@@ -116,7 +116,7 @@ with st.sidebar:
     
     st.divider()
 # --- Sidebar Navigation Logic (Robust) ---
-nav_options = ["🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)", "📊 Portfolio & Analytics"]
+nav_options = ["🏠 Home / Market Hub", "🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)", "📊 Portfolio & Analytics"]
 
 # Key-Rotation Pattern: Bypasses Streamlit's internal widget state
 if 'nav_key' not in st.session_state:
@@ -138,7 +138,69 @@ page = st.sidebar.radio("Navigation", nav_options, index=nav_index, key=f"nav_ra
 if 'page_target' in st.session_state:
     del st.session_state['page_target']
 
-if page == "🔍 Deep Analyzer":
+if page == "🏠 Home / Market Hub":
+    st.header("🏠 Market Intelligence Hub")
+    
+    # 1. Market Status Bar
+    is_open, status_msg = is_market_open()
+    st.info(f"📅 **Status:** {status_msg}")
+
+    # 2. 🌟 Market Stars Section
+    st.subheader("🌟 Market Leaders")
+    
+    with st.spinner("Scanning for top performers..."):
+        # We scan POPULAR_STOCKS for speed
+        screener = StockScreener(POPULAR_STOCKS)
+        day_star, month_star = screener.get_market_stars()
+        
+    c1, c2 = st.columns(2)
+    
+    if day_star:
+        with c1:
+            st.markdown(f"""
+            <div style="background-color: rgba(0, 255, 0, 0.05); border: 2px solid rgba(0, 255, 0, 0.3); padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                <h3 style="margin:0; opacity: 0.8;">🔥 Star of the Day</h3>
+                <h1 style="color: #00FF00; margin: 10px 0; font-size: 42px;">{day_star['ticker']}</h1>
+                <p style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">{day_star['change']:+.2f}%</p>
+                <p style="opacity: 0.7;">Today's breakout leader!</p>
+            </div>
+            """, unsafe_allow_html=True)
+            st.write("") # Spacer
+            if st.button(f"🔍 Deep Analyze {day_star['ticker']}", key="home_day_btn", use_container_width=True):
+                 st.session_state['page_target'] = "🔍 Deep Analyzer"
+                 st.session_state['ticker_target'] = day_star['ticker']
+                 st.session_state['trigger_analyze'] = True
+                 st.rerun()
+
+    if month_star:
+        with c2:
+            st.markdown(f"""
+            <div style="background-color: rgba(255, 215, 0, 0.05); border: 2px solid rgba(255, 215, 0, 0.3); padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                <h3 style="margin:0; opacity: 0.8;">🏆 Star of the Month</h3>
+                <h1 style="color: #FFD700; margin: 10px 0; font-size: 42px;">{month_star['ticker']}</h1>
+                <p style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">{month_star['change']:+.2f}%</p>
+                <p style="opacity: 0.7;">Consistent monthly strength!</p>
+            </div>
+            """, unsafe_allow_html=True)
+            st.write("") # Spacer
+            if st.button(f"🔍 Deep Analyze {month_star['ticker']}", key="home_month_btn", use_container_width=True):
+                 st.session_state['page_target'] = "🔍 Deep Analyzer"
+                 st.session_state['ticker_target'] = month_star['ticker']
+                 st.session_state['trigger_analyze'] = True
+                 st.rerun()
+
+    st.divider()
+    
+    # 3. Quick Tips / Global Context
+    tc1, tc2 = st.columns(2)
+    with tc1:
+        st.write("### 🚀 Market Sentiment")
+        st.write("Broad indices are showing strength in the IT and Pharma sectors today.")
+    with tc2:
+        st.write("### 💡 Trading Pro Tip")
+        st.write("Always wait for confirmation from the **EMA Cloud** before entering a trade on a breakout star.")
+
+elif page == "🔍 Deep Analyzer":
     # --- Sidebar Inputs (Search Only) ---
     with st.sidebar:
         st.header("Stock Selection")

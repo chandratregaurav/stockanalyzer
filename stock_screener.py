@@ -235,3 +235,28 @@ class StockScreener:
         results.sort(key=lambda x: x['score'], reverse=True)
         
         return results[:5]
+
+    def get_market_stars(self, limit_tickers=None):
+        """Finds the 'Star of the Day' and 'Star of the Month'."""
+        tickers_to_scan = limit_tickers if limit_tickers else self.tickers
+        day_star = None
+        month_star = None
+        day_max = -999
+        month_max = -999
+        
+        for ticker in tickers_to_scan:
+            df = self.fetch_history(ticker)
+            if df is not None and len(df) > 22:
+                # 1D Change
+                c_1d = ((df['Close'].iloc[-1] - df['Close'].iloc[-2]) / df['Close'].iloc[-2]) * 100
+                if c_1d > day_max:
+                    day_max = c_1d
+                    day_star = {'ticker': ticker, 'price': df['Close'].iloc[-1], 'change': c_1d}
+                
+                # 30D Change
+                c_30d = ((df['Close'].iloc[-1] - df['Close'].iloc[-22]) / df['Close'].iloc[-22]) * 100
+                if c_30d > month_max:
+                    month_max = c_30d
+                    month_star = {'ticker': ticker, 'price': df['Close'].iloc[-1], 'change': c_30d}
+        
+        return day_star, month_star
