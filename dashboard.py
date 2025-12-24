@@ -46,9 +46,9 @@ if 'trader' not in st.session_state:
 
 def play_alert_sound():
     """Plays a beep sound using HTML5 Audio from assets."""
-    if ALERT_SOUND_B64:
-        # Use a hidden iframe or a more 'active' audio tag
-        # Adding a timestamp-like random value to the markdown to force re-render
+    if ALERT_SOUND_B64 and st.session_state.get('audio_enabled', False):
+        # Browsers require user interaction before playing audio. 
+        # The toggle 'audio_enabled' satisfies this.
         st.markdown(
             f'<audio autoplay="true" style="display:none;"><source src="{ALERT_SOUND_B64}" type="audio/wav"></audio>',
             unsafe_allow_html=True
@@ -67,6 +67,11 @@ POPULAR_STOCKS = [
 ]
 
 # --- Sidebar Navigation ---
+with st.sidebar:
+    st.header("⚙️ Controls")
+    st.session_state['audio_enabled'] = st.checkbox("🔊 Enable Sound Alerts", value=True)
+    st.divider()
+
 page = st.sidebar.radio("Navigation", ["🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)"])
 
 if page == "🔍 Deep Analyzer":
@@ -410,6 +415,11 @@ elif page == "⚡ Intraday Surge (1-2 Hr)":
     # --- TAB 3: Trending Stocks ---
     with tab3:
         st.subheader("🔥 Market Movers (Day's Top Picks)")
+        
+        # New: Market Check for Trending
+        market_open, market_msg = is_market_open()
+        if not market_open:
+             st.warning(f"🌙 {market_msg}. Market picks are based on today's Close.")
         
         custom_ticker = st.text_input("🔍 Check specific stock (e.g. TATASTEEL.NS)", value="", key="trending_custom").upper()
         
