@@ -72,7 +72,11 @@ with st.sidebar:
     st.session_state['audio_enabled'] = st.checkbox("🔊 Enable Sound Alerts", value=True)
     st.divider()
 
-page = st.sidebar.radio("Navigation", ["🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)"])
+page = st.sidebar.radio(
+    "Navigation", 
+    ["🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)"],
+    key="nav_sidebar"
+)
 
 if page == "🔍 Deep Analyzer":
     # --- Sidebar Inputs for Analyzer ---
@@ -81,7 +85,11 @@ if page == "🔍 Deep Analyzer":
         
         # Ticker Selection & Search
         st.write("### 🔍 Search Stock")
-        custom_search = st.text_input("Enter Ticker (e.g. RELIANCE.NS)", "").upper()
+        custom_search = st.text_input(
+            "Enter Ticker (e.g. RELIANCE.NS)", 
+            value=st.session_state.get('auto_search_val', ""),
+            key="analyzer_search"
+        ).upper()
         
         ticker_suggestion = st.selectbox(
             "Or Select from Popular",
@@ -108,7 +116,15 @@ if page == "🔍 Deep Analyzer":
             st.warning("⚠️ Range < 7 days. Switching to Hourly data for better charts.")
             interval_code = "1h"
         
-        if st.button("Generate Projections", type="primary"):
+        # Auto-trigger if redirected
+        if st.session_state.get('trigger_analyze', False):
+             ticker_input = st.session_state.get('auto_search_val', ticker_suggestion)
+             st.session_state['trigger_analyze'] = False # Reset
+             auto_click = True
+        else:
+             auto_click = False
+
+        if st.button("Generate Projections", type="primary") or auto_click:
             with st.spinner(f"Fetching {interval_code} data for {ticker_input}..."):
                 analyzer = StockAnalyzer(ticker_input)
                 # Fetch Data
@@ -232,7 +248,10 @@ elif page == "🚀 Trending Picks (Top 5)":
                         
                     with col3:
                          if st.button(f"Analyze {pick['ticker']}", key=f"btn_trend_{i}"):
-                             st.toast(f"Go to 'Deep Analyzer' and select {pick['ticker']}!")
+                             st.session_state['nav_sidebar'] = "🔍 Deep Analyzer"
+                             st.session_state['auto_search_val'] = pick['ticker']
+                             st.session_state['trigger_analyze'] = True
+                             st.rerun()
                     
                     st.divider()
         else:
