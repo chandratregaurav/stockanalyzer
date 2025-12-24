@@ -13,7 +13,21 @@ from stock_screener import StockScreener
 from stock_analyzer import StockAnalyzer
 
 # --- Page Configuration (MUST be first Streamlit command) ---
-st.set_page_config(page_title="Stock Analysis Pro", layout="wide")
+st.set_page_config(page_title="Stock Analysis Pro | Indian Market Forecaster", layout="wide", page_icon="📈")
+
+# SEO Meta Tags Integration
+st.markdown("""
+    <head>
+        <title>Stock Analysis Pro | Free Multibagger Finder & Indian Stock Forecaster</title>
+        <meta name="description" content="Discover potential 10x multibagger stocks with our professional AI-driven scanner. Free technical and fundamental analysis for Nifty 50, NSE, and BSE stocks.">
+        <meta name="keywords" content="Multibagger Finder, Indian Stock Analysis, Nifty 50 Forecast, Stock Targets, NSE, BSE, Technical Analysis, CAN SLIM, Minervini">
+        <meta name="author" content="Gaurav Chandratre">
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="website">
+        <meta property="og:title" content="Stock Analysis Pro | Multi-Strategy Multibagger Finder">
+        <meta property="og:description" content="Free professional stock analysis tool for Indian markets. High-growth signals and automated forecasting.">
+    </head>
+""", unsafe_allow_html=True)
 
 # Force Uppercase Display CSS
 st.markdown("""
@@ -360,6 +374,20 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
+    st.divider()
+    
+    # Professional Resources Section
+    st.markdown("""
+    <div style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+        <div style="font-size: 11px; font-weight: bold; color: #AAA; text-transform: uppercase; margin-bottom: 10px;">💎 Professional Resources</div>
+        <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px;">
+            <li style="margin-bottom: 8px;"><a href="#" style="text-decoration: none; color: #00FF00;">✉️ Growth Alpha Newsletter</a></li>
+            <li style="margin-bottom: 8px;"><a href="#" style="text-decoration: none; color: #00FF00;">📈 Zero-Brokerage Partner</a></li>
+            <li style="margin-bottom: 8px;"><a href="#" style="text-decoration: none; color: #00FF00;">☕ Support Development</a></li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
 page = st.session_state['current_page']
 
 # Cleanup target
@@ -570,9 +598,14 @@ elif page == "🔍 Deep Analyzer":
         ).upper()
         
     # Process Ticker
+    # Process Ticker
     if ticker_input_raw:
         suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
         ticker_input = ticker_input_raw if "." in ticker_input_raw else f"{ticker_input_raw}{suffix}"
+        
+        # SEO Injection: Update Title Tag
+        clean_name = ticker_input.split('.')[0]
+        st.markdown(f"<html><head><title>Analyzing {clean_name} | Stock Analysis Pro</title></head></html>", unsafe_allow_html=True)
     else:
         if st.session_state.get('master_search'):
             sym = st.session_state['master_search'].split(' - ')[0]
