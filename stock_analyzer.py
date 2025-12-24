@@ -10,6 +10,8 @@ class StockAnalyzer:
         self.ticker = ticker
         self.data = None
         self.model = None
+        self.info = {}
+        self.news = []
 
     def fetch_data(self, start=None, end=None, interval='1d'):
         """Fetches historical data.
@@ -43,7 +45,64 @@ class StockAnalyzer:
             return False
             
         print(f"Successfully fetched {len(self.data)} rows of data.")
+        self.calculate_indicators()
         return True
+
+    def calculate_indicators(self):
+        """Calculates advanced technical indicators (MACD, Bollinger Bands)."""
+        if self.data is None or len(self.data) < 26:
+            return
+
+        df = self.data
+        # 1. Bollinger Bands (20-day, 2 Std Dev)
+        df['MA20'] = df['Close'].rolling(window=20).mean()
+        df['STD20'] = df['Close'].rolling(window=20).std()
+        df['Upper_Band'] = df['MA20'] + (df['STD20'] * 2)
+        df['Lower_Band'] = df['MA20'] - (df['STD20'] * 2)
+
+        # 2. MACD (12, 26, 9)
+        exp1 = df['Close'].ewm(span=12, adjust=False).mean()
+        exp2 = df['Close'].ewm(span=26, adjust=False).mean()
+        df['MACD'] = exp1 - exp2
+        df['Signal_Line'] = df['MACD'].ewm(span=9, adjust=False).mean()
+        df['MACD_Hist'] = df['MACD'] - df['Signal_Line']
+
+        # 3. EMAs
+        df['EMA20'] = df['Close'].ewm(span=20, adjust=False).mean()
+        df['EMA50'] = df['Close'].ewm(span=50, adjust=False).mean()
+        df['EMA200'] = df['Close'].ewm(span=200, adjust=False).mean()
+        
+        self.data = df
+
+    def fetch_fundamentals(self):
+        """Fetches fundamental data using yfinance.info."""
+        try:
+            tick = yf.Ticker(self.ticker)
+            info = tick.info
+            self.info = {
+                'name': info.get('longName', self.ticker),
+                'pe': info.get('trailingPE', 0),
+                'forward_pe': info.get('forwardPE', 0),
+                'market_cap': info.get('marketCap', 0),
+                'dividend_yield': info.get('dividendYield', 0) * 100 if info.get('dividendYield') else 0,
+                'beta': info.get('beta', 0),
+                '52w_high': info.get('fiftyTwoWeekHigh', 0),
+                '52w_low': info.get('fiftyTwoWeekLow', 0),
+                'sector': info.get('sector', 'N/A'),
+                'summary': info.get('longBusinessSummary', 'No summary available.')
+            }
+            return True
+        except:
+            return False
+
+    def get_news(self):
+        """Fetches recent news for the ticker."""
+        try:
+            tick = yf.Ticker(self.ticker)
+            self.news = tick.news[:5] # Top 5 news items
+            return self.news
+        except:
+            return []
 
     def analyze_and_project(self):
         """Analyzes data and projects targets."""

@@ -9,6 +9,7 @@ class PaperTrader:
         self.positions = {} # {ticker: {'qty': int, 'avg_price': float, 'ts': timestamp}}
         self.trade_log = [] # List of trade dicts
         self.total_profit = 0.0
+        self.equity_history = [{"ts": datetime.now(), "value": initial_balance}]
 
     def get_portfolio_value(self, current_prices):
         """Calculates total value (Cash + Holdings)."""
@@ -17,6 +18,11 @@ class PaperTrader:
             current_price = current_prices.get(ticker, pos['avg_price'])
             holdings_value += pos['qty'] * current_price
         return self.cash + holdings_value
+
+    def log_portfolio_value(self, current_prices):
+        """Records current portfolio value for history plotting."""
+        val = self.get_portfolio_value(current_prices)
+        self.equity_history.append({"ts": datetime.now(), "value": val})
 
     def buy(self, ticker, price, amount=2000):
         """Buys a stock with a fixed amount of cash (approx)."""

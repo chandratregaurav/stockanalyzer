@@ -99,8 +99,30 @@ with st.sidebar:
     st.session_state['audio_enabled'] = st.checkbox("🔊 Enable Sound Alerts", value=True)
     st.session_state['exchange'] = st.radio("Select Exchange", ["NSE", "BSE"], horizontal=True)
     st.divider()
+    
+    # --- Price Alerts UI ---
+    st.header("🔔 Price Alerts")
+    alert_ticker = st.text_input("Ticker to Alert", placeholder="RELIANCE", key="alert_ticker").upper()
+    alert_price = st.number_input("Target Price (₹)", min_value=0.0, step=1.0)
+    if st.button("Set Alert"):
+        if alert_ticker:
+            suffix = ".NS" if st.session_state['exchange'] == "NSE" else ".BO"
+            full_ticker = f"{alert_ticker}{suffix}" if "." not in alert_ticker else alert_ticker
+            if 'alerts' not in st.session_state: st.session_state['alerts'] = []
+            st.session_state['alerts'].append({"ticker": full_ticker, "price": alert_price, "active": True})
+            st.success(f"Alert set for {full_ticker} @ {alert_price}")
+
+    # Display Active Alerts
+    if st.session_state.get('alerts'):
+        for i, a in enumerate(st.session_state['alerts']):
+            if a['active']:
+                st.caption(f"🔔 {a['ticker']} @ {a['price']}")
+                if st.button("Cancel", key=f"cancel_alert_{i}"):
+                    st.session_state['alerts'][i]['active'] = False
+                    st.rerun()
+    st.divider()
 # --- Sidebar Navigation Logic (Robust) ---
-nav_options = ["🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)"]
+nav_options = ["🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)", "📊 Portfolio & Analytics"]
 
 # Key-Rotation Pattern: Bypasses Streamlit's internal widget state
 if 'nav_key' not in st.session_state:
@@ -214,17 +236,25 @@ if page == "🔍 Deep Analyzer":
         if st.button("Generate Projections", type="primary") or auto_click:
             with st.spinner(f"Fetching {interval_code} data for {ticker_input}..."):
                 analyzer = StockAnalyzer(ticker_input)
-                # Fetch Data
+                # Fetch Data & Fundamentals
                 success = analyzer.fetch_data(start=start_date, end=end_date, interval=interval_code)
+                analyzer.fetch_fundamentals()
+                analyzer.get_news()
                 
                 if success and analyzer.data is not None and not analyzer.data.empty:
                     df = analyzer.data
                     st.session_state['data'] = df
                     st.session_state['analyzer'] = analyzer
                     st.session_state['ticker'] = ticker_input
-                    st.success("Data Loaded!")
+                    st.success("Analysis Ready!")
                 else:
                     st.error("No data found. Check ticker or date range.")
+
+        # --- Indicator Toggles ---
+        st.write("### 📊 Chart Options")
+        show_bb = st.checkbox("Bollinger Bands", value=False)
+        show_emas = st.checkbox("EMA Cloud (20/50/200)", value=False)
+        show_macd = st.checkbox("Show MACD Chart", value=True)
 
     # --- Analyzer Main Content ---
     if 'data' in st.session_state:
@@ -234,15 +264,54 @@ if page == "🔍 Deep Analyzer":
         
         st.header(f"{ticker} Analysis ({len(df)} candles)")
         
-        # 1. Candlestick Chart (Interactive)
+        # 1. Fundamentals Section (New)
+        if analyzer.info:
+            with st.container():
+                st.subheader("🏛️ Fundamentals & Info")
+                info = analyzer.info
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Market Cap", f"₹{info['market_cap']/1e7:.1f} Cr")
+                c2.metric("P/E Ratio", f"{info['pe']:.1f}")
+                c3.metric("Div. Yield", f"{info['dividend_yield']:.1f}%")
+                c4.metric("Beta", f"{info['beta']:.2f}")
+                
+                with st.expander("Business Summary"):
+                    st.write(f"**Sector:** {info['sector']}")
+                    st.write(f"**52W Range:** ₹{info['52w_low']:.2f} - ₹{info['52w_high']:.2f}")
+                    st.write(info['summary'])
+                st.divider()
+
+        # 2. Candlestick Chart (Interactive)
         st.subheader("Interactive Price Chart")
         fig = go.Figure(data=[go.Candlestick(x=df.index,
                         open=df['Open'],
                         high=df['High'],
                         low=df['Low'],
-                        close=df['Close'])])
-        fig.update_layout(height=500)
+                        close=df['Close'],
+                        name="Price")])
+        
+        # Add Bollinger Bands if requested
+        if show_bb and 'Upper_Band' in df.columns:
+            fig.add_trace(go.Scatter(x=df.index, y=df['Upper_Band'], name='BB Upper', line=dict(color='rgba(173, 216, 230, 0.4)', width=1)))
+            fig.add_trace(go.Scatter(x=df.index, y=df['Lower_Band'], name='BB Lower', line=dict(color='rgba(173, 216, 230, 0.4)', width=1), fill='tonexty'))
+            
+        # Add EMAs if requested
+        if show_emas:
+            if 'EMA20' in df.columns: fig.add_trace(go.Scatter(x=df.index, y=df['EMA20'], name='EMA 20', line=dict(color='yellow', width=1)))
+            if 'EMA50' in df.columns: fig.add_trace(go.Scatter(x=df.index, y=df['EMA50'], name='EMA 50', line=dict(color='orange', width=1)))
+            if 'EMA200' in df.columns: fig.add_trace(go.Scatter(x=df.index, y=df['EMA200'], name='EMA 200', line=dict(color='red', width=1.5)))
+
+        fig.update_layout(height=500, margin=dict(l=0, r=0, t=30, b=0))
         st.plotly_chart(fig, use_container_width=True)
+
+        # 3. MACD Chart (New Sub-chart)
+        if show_macd and 'MACD' in df.columns:
+            macd_fig = go.Figure()
+            macd_fig.add_trace(go.Scatter(x=df.index, y=df['MACD'], name='MACD', line=dict(color='blue', width=1.5)))
+            macd_fig.add_trace(go.Scatter(x=df.index, y=df['Signal_Line'], name='Signal', line=dict(color='orange', width=1)))
+            macd_fig.add_trace(go.Bar(x=df.index, y=df['MACD_Hist'], name='Hist', marker_color='gray', opacity=0.5))
+            macd_fig.update_layout(height=250, title="MACD (12, 26, 9)", margin=dict(l=0, r=0, t=30, b=0))
+            st.plotly_chart(macd_fig, use_container_width=True)
         
         # 2. Projections
         st.subheader("🔮 Blended Momentum Projections (Multi-Horizon)")
@@ -297,6 +366,65 @@ if page == "🔍 Deep Analyzer":
             prev_price = tgt_price
             
         st.plotly_chart(proj_fig, use_container_width=True)
+
+        # 4. News Section (New)
+        st.subheader("📰 Latest News")
+        if analyzer.news:
+            for n in analyzer.news:
+                with st.expander(n.get('title', 'News Item')):
+                    st.write(f"**Publisher:** {n.get('publisher', 'N/A')}")
+                    st.write(f"**Published:** {n.get('link', '')}")
+                    # Note: yfinance news format can vary, but this covers the basics
+        else:
+            st.write("No recent news found for this ticker.")
+
+elif page == "📊 Portfolio & Analytics":
+    st.header("📊 Portfolio Performance & Analytics")
+    trader = st.session_state['trader']
+    
+    # 1. Performance Overview
+    c1, c2, c3, c4 = st.columns(4)
+    # Get current holdings value to update equity
+    curr_prices = {} 
+    # (Simple fallback: use average price if we don't have a live scan running)
+    for t, p in trader.positions.items(): curr_prices[t] = p['avg_price']
+    
+    total_val = trader.get_portfolio_value(curr_prices)
+    
+    c1.metric("Total Value", f"₹{total_val:.2f}")
+    c2.metric("Cash", f"₹{trader.cash:.2f}")
+    c3.metric("Total P&L", f"₹{trader.total_profit:.2f}")
+    
+    # Equity history logging (Simple: logs once per page view for demo)
+    if not trader.equity_history or trader.equity_history[-1]['value'] != total_val:
+        trader.log_portfolio_value(curr_prices)
+
+    # 2. Equity Curve
+    st.subheader("📈 Portfolio Equity Curve")
+    if trader.equity_history:
+        h_df = pd.DataFrame(trader.equity_history)
+        fig_equity = go.Figure()
+        fig_equity.add_trace(go.Scatter(x=h_df['ts'], y=h_df['value'], mode='lines+markers', name='Equity', line=dict(color='#00FF00', width=2)))
+        fig_equity.update_layout(height=400, margin=dict(l=0, r=0, t=30, b=0))
+        st.plotly_chart(fig_equity, use_container_width=True)
+    
+    # 3. Allocation
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.subheader("💼 Allocation")
+        if trader.positions:
+            labels = list(trader.positions.keys()) + ["Cash"]
+            values = [p['qty']*p['avg_price'] for p in trader.positions.values()] + [trader.cash]
+            fig_pie = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.4)])
+            st.plotly_chart(fig_pie, use_container_width=True)
+        else:
+            st.info("No open positions.")
+    
+    with col_b:
+        st.subheader("📝 Trade Statistics")
+        st.write(f"- **Initial Capital:** ₹{trader.initial_balance:.2f}")
+        st.write(f"- **Total Trades:** {len(trader.trade_log)}")
+        st.write(f"- **Current Holdings:** {len(trader.positions)}")
 
 elif page == "🚀 Trending Picks (Top 5)":
     st.header("🚀 Top 5 Trending Stocks")
@@ -488,6 +616,21 @@ elif page == "⚡ Intraday Surge (1-2 Hr)":
                             play_alert_sound()
                             for msg in exit_msgs:
                                 st.toast(msg, icon="💰")
+
+                        # C. Check Custom Alerts (New)
+                        if st.session_state.get('alerts'):
+                            for i, alert in enumerate(st.session_state['alerts']):
+                                if alert['active']:
+                                    t = alert['ticker']
+                                    target_p = alert['price']
+                                    # Use price from scan if available
+                                    current_p = current_prices_map.get(t)
+                                    if current_p:
+                                        # Trigger if price hits or crosses target
+                                        if current_p >= target_p:
+                                            play_alert_sound()
+                                            st.toast(f"🚨 ALERT: {t} hit ₹{current_p:.2f}! (Target: ₹{target_p})", icon="🔥")
+                                            st.session_state['alerts'][i]['active'] = False # Deactivate after trigger
 
                         # B. Check Entries
                         if top_scalps:
