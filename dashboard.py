@@ -79,12 +79,17 @@ if page == "🔍 Deep Analyzer":
     with st.sidebar:
         st.header("Configuration")
         
-        # Ticker Selection
-        ticker_input = st.selectbox(
-            "Select or Type Ticker",
+        # Ticker Selection & Search
+        st.write("### 🔍 Search Stock")
+        custom_search = st.text_input("Enter Ticker (e.g. RELIANCE.NS)", "").upper()
+        
+        ticker_suggestion = st.selectbox(
+            "Or Select from Popular",
             POPULAR_STOCKS,
             index=0
         )
+        
+        ticker_input = custom_search if custom_search else ticker_suggestion
         
         # Date Selection
         c1, c2 = st.columns(2)
@@ -235,7 +240,16 @@ elif page == "🚀 Trending Picks (Top 5)":
 
 elif page == "⚡ Intraday Surge (1-2 Hr)":
     st.header("⚡ Intraday Scalper & Paper Bot")
-    st.info("⚠️ **Uses Live Hourly Data.** Ensure Market is Open.")
+    
+    # Strict Market Hours Enforcement for this page
+    market_open, market_msg = is_market_open()
+    
+    if not market_open:
+        st.warning(f"🌙 {market_msg}")
+        st.info("This section is only active during live market hours (9:15 AM - 3:30 PM IST).")
+        st.stop() # Prevents showing the tabs and logic below
+
+    st.info("⚠️ **Uses Live Hourly Data.** Market is LIVE. Happy Trading!")
 
     tab1, tab2, tab3 = st.tabs(["🔔 Live Monitor", "🤖 Auto-Bot (Paper)", "🔥 Trending"])
 
@@ -416,23 +430,13 @@ elif page == "⚡ Intraday Surge (1-2 Hr)":
     with tab3:
         st.subheader("🔥 Market Movers (Day's Top Picks)")
         
-        # New: Market Check for Trending
-        market_open, market_msg = is_market_open()
-        if not market_open:
-             st.warning(f"🌙 {market_msg}. Market picks are based on today's Close.")
-        
-        custom_ticker = st.text_input("🔍 Check specific stock (e.g. TATASTEEL.NS)", value="", key="trending_custom").upper()
+        # Market Check for Trending
+        st.success("✅ Market is LIVE. Scanning Popular Indian Stocks.")
         
         if st.button("Scan Market", key="trending_scan"):
             with st.spinner("Scanning top Indian stocks..."):
                 screener = StockScreener(POPULAR_STOCKS)
                 market_picks = screener.screen_market()
-                
-                if custom_ticker:
-                     custom_screener = StockScreener([custom_ticker])
-                     custom_res = custom_screener.screen_market()
-                     if custom_res:
-                         market_picks.insert(0, custom_res[0])
                 
                 if market_picks:
                     for pick in market_picks:
