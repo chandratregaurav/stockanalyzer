@@ -100,26 +100,6 @@ with st.sidebar:
     st.session_state['exchange'] = st.radio("Select Exchange", ["NSE", "BSE"], horizontal=True)
     st.divider()
     
-    # --- Price Alerts UI ---
-    st.header("🔔 Price Alerts")
-    alert_ticker = st.text_input("Ticker to Alert", placeholder="RELIANCE", key="alert_ticker").upper()
-    alert_price = st.number_input("Target Price (₹)", min_value=0.0, step=1.0)
-    if st.button("Set Alert"):
-        if alert_ticker:
-            suffix = ".NS" if st.session_state['exchange'] == "NSE" else ".BO"
-            full_ticker = f"{alert_ticker}{suffix}" if "." not in alert_ticker else alert_ticker
-            if 'alerts' not in st.session_state: st.session_state['alerts'] = []
-            st.session_state['alerts'].append({"ticker": full_ticker, "price": alert_price, "active": True})
-            st.success(f"Alert set for {full_ticker} @ {alert_price}")
-
-    # Display Active Alerts
-    if st.session_state.get('alerts'):
-        for i, a in enumerate(st.session_state['alerts']):
-            if a['active']:
-                st.caption(f"🔔 {a['ticker']} @ {a['price']}")
-                if st.button("Cancel", key=f"cancel_alert_{i}"):
-                    st.session_state['alerts'][i]['active'] = False
-                    st.rerun()
     st.divider()
 # --- Sidebar Navigation Logic (Robust) ---
 nav_options = ["🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)", "📊 Portfolio & Analytics"]
@@ -279,6 +259,18 @@ if page == "🔍 Deep Analyzer":
                     st.write(f"**Sector:** {info['sector']}")
                     st.write(f"**52W Range:** ₹{info['52w_low']:.2f} - ₹{info['52w_high']:.2f}")
                     st.write(info['summary'])
+                
+                # --- Quick Alert Section (New) ---
+                st.write("---")
+                c1, c2 = st.columns([2, 1])
+                with c1:
+                    new_alert = st.number_input(f"Set Price Alert for {ticker}", value=float(df['Close'].iloc[-1]), step=1.0)
+                with c2:
+                    if st.button("🔔 Set Alert", use_container_width=True):
+                        if 'alerts' not in st.session_state: st.session_state['alerts'] = []
+                        st.session_state['alerts'].append({"ticker": ticker, "price": new_alert, "active": True})
+                        st.toast(f"Alert set for {ticker} @ ₹{new_alert}", icon="🔔")
+
                 st.divider()
 
         # 2. Candlestick Chart (Interactive)
