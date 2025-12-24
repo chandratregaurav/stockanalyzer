@@ -510,6 +510,27 @@ elif page == "💎 Potential Multibaggers":
         st.write("Click the button above to start the professional-grade scan.")
 
 elif page == "🔍 Deep Analyzer":
+    # --- Forced Redirection Sync ---
+    if 'ticker_target' in st.session_state:
+        target = st.session_state['ticker_target']
+        clean_name = target.split('.')[0]
+        
+        # 1. Sync Exchange
+        if ".BO" in target: st.session_state['exchange_radio'] = "BSE"
+        else: st.session_state['exchange_radio'] = "NSE"
+        
+        # 2. Sync Manual Ticker
+        st.session_state['manual_ticker'] = clean_name
+        
+        # 3. Sync Search Box
+        for opt in TICKER_OPTIONS:
+            if opt.startswith(f"{clean_name} -"):
+                st.session_state['master_search'] = opt
+                break
+        
+        # Clean up
+        del st.session_state['ticker_target']
+
     # --- Main Screen Configuration (Consolidated Search & Period) ---
     st.header(f"🔍 Deep Analyzer")
     
@@ -518,30 +539,20 @@ elif page == "🔍 Deep Analyzer":
     
     with sc1:
         st.write("**🏛️ Exchange**")
-        st.session_state['exchange'] = st.radio("Exchange", ["NSE", "BSE"], horizontal=True, label_visibility="collapsed")
+        st.radio("Exchange", ["NSE", "BSE"], key="exchange_radio", horizontal=True, label_visibility="collapsed")
+        # Ensure exchange variable stays in sync with radio
+        st.session_state['exchange'] = st.session_state['exchange_radio']
     
     with sc2:
         st.write("**🔍 Search Name**")
-        # Get target ticker or default
-        ticker_val = st.session_state.get('ticker_target', "")
-        
         def sync_from_list():
             if st.session_state.get('master_search'):
                 sym = st.session_state['master_search'].split(' - ')[0]
                 st.session_state['manual_ticker'] = sym
 
-        select_idx = None
-        if ticker_val:
-            clean_ticker = ticker_val.split('.')[0]
-            for i, opt in enumerate(TICKER_OPTIONS):
-                if opt.startswith(f"{clean_ticker} -"):
-                    select_idx = i
-                    break
-
         st.selectbox(
             "Search Ticker or Company Name",
             TICKER_OPTIONS,
-            index=select_idx,
             key="master_search",
             on_change=sync_from_list,
             label_visibility="collapsed"
@@ -551,7 +562,6 @@ elif page == "🔍 Deep Analyzer":
         st.write("**⌨️ Manual Ticker**")
         ticker_input_raw = st.text_input(
             "Ticker (e.g. RELIANCE)", 
-            value=ticker_val if ticker_val else "",
             key="manual_ticker",
             label_visibility="collapsed"
         ).upper()
@@ -568,8 +578,7 @@ elif page == "🔍 Deep Analyzer":
         else:
             ticker_input = "RELIANCE.NS"
 
-    if 'ticker_target' in st.session_state:
-        del st.session_state['ticker_target']
+    # Process Ticker
 
     clean_manual = ticker_input_raw.split('.')[0]
     if clean_manual in TICKER_MAP:
