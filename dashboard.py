@@ -11,6 +11,15 @@ import os
 # --- Page Configuration (MUST be first Streamlit command) ---
 st.set_page_config(page_title="Stock Analysis Pro", layout="wide")
 
+# Force Uppercase Display CSS
+st.markdown("""
+<style>
+    input {
+        text-transform: uppercase !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # Custom Modules
 import stock_screener
 importlib.reload(stock_screener)
@@ -59,16 +68,21 @@ def play_alert_sound():
 st.title("📈 Stock Analysis & Projection")
 
 # --- Constants ---
+@st.cache_data
 def load_ticker_db():
     base_path = os.path.dirname(os.path.abspath(__file__))
     db_path = os.path.join(base_path, "ticker_db.json")
     if os.path.exists(db_path):
         with open(db_path, "r") as f:
-            return json.load(f)
+            data = json.load(f)
+            # Ensure uniqueness and sorted order
+            data = sorted(data, key=lambda x: x['symbol'])
+            return data
     return []
 
 TICKER_DB = load_ticker_db()
-TICKER_OPTIONS = [f"{s['name']} ({s['symbol']})" for s in TICKER_DB]
+TICKER_MAP = {s['symbol']: s['name'] for s in TICKER_DB}
+TICKER_OPTIONS = [f"{s['symbol']} - {s['name']}" for s in TICKER_DB]
 
 POPULAR_STOCKS = [
     "RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "ICICIBANK.NS",
@@ -118,51 +132,60 @@ if page == "🔍 Deep Analyzer":
         # Get target ticker or default
         ticker_val = st.session_state.get('ticker_target', "")
         
-        # 1. Searchable Autocomplete (Name + Symbol)
-        select_idx = 0
+        # Helper: Sync Logic
+        def sync_from_list():
+            if st.session_state['master_search']:
+                sym = st.session_state['master_search'].split(' - ')[0]
+                st.session_state['manual_ticker'] = sym
+
+        # 1. Universal Search (SYMBOL - NAME)
+        # We find the pre-selected index if ticker_val exists
+        select_idx = None
         if ticker_val:
-            # Strip suffix for matching if needed
             clean_ticker = ticker_val.split('.')[0]
             for i, opt in enumerate(TICKER_OPTIONS):
-                if f"({clean_ticker})" in opt:
+                if opt.startswith(f"{clean_ticker} -"):
                     select_idx = i
                     break
 
-        ticker_selection = st.selectbox(
-            "Search by Name or Ticker",
+        st.selectbox(
+            "Search Ticker or Company Name",
             TICKER_OPTIONS,
             index=select_idx,
-            help="Type to search through 100+ stocks"
+            key="master_search",
+            on_change=sync_from_list,
+            help="Type to search through 500+ Indian stocks"
         )
-        
-        # Extract symbol from selection: "Name (SYMBOL)" -> "SYMBOL"
-        selected_symbol = ticker_selection.split('(')[-1].split(')')[0]
 
-        # 2. Manual Entry (With Auto-Uppercase logic)
+        # 2. Manual Ticker (Auto-Uppercase via CSS + Logic)
         ticker_input_raw = st.text_input(
-            "Or Type Manually (Auto-Uppercase)", 
-            value=ticker_val,
-            placeholder="e.g. RELIANCE"
+            "Ticker (e.g. RELIANCE)", 
+            value=ticker_val if ticker_val else "",
+            key="manual_ticker",
+            help="Characters appear in UPPERCASE as you type!"
         ).upper()
         
-        # Reset target after use
+        # Show detected name if ticker matches
+        clean_manual = ticker_input_raw.split('.')[0]
+        if clean_manual in TICKER_MAP:
+             st.caption(f"✨ Detected: **{TICKER_MAP[clean_manual]}**")
+
+        # Cleanup target
         if 'ticker_target' in st.session_state:
             del st.session_state['ticker_target']
         
-        # Priority: Manual Input (if changed/typed) > Selection
-        # We check if input is different from the selection's symbol or if it was explicitly typed
-        if ticker_input_raw and ticker_input_raw != selected_symbol:
-            # Auto-append suffix if missing
+        # Final Ticker Processing
+        if ticker_input_raw:
             suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
-            if "." not in ticker_input_raw:
-                ticker_input = f"{ticker_input_raw}{suffix}"
-            else:
-                ticker_input = ticker_input_raw
+            ticker_input = ticker_input_raw if "." in ticker_input_raw else f"{ticker_input_raw}{suffix}"
         else:
-            # Use selection, append current exchange suffix if it's a raw symbol
-            # (Note: DB symbols are raw without .NS/.BO)
-            suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
-            ticker_input = f"{selected_symbol}{suffix}"
+            # Fallback to selection if manual is empty
+            if st.session_state.get('master_search'):
+                sym = st.session_state['master_search'].split(' - ')[0]
+                suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
+                ticker_input = f"{sym}{suffix}"
+            else:
+                ticker_input = "RELIANCE.NS" # True fallback
         
         # Date Selection
         c1, c2 = st.columns(2)
