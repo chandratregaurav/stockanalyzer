@@ -244,6 +244,19 @@ if page == "🔍 Deep Analyzer":
         
         st.header(f"{ticker} Analysis ({len(df)} candles)")
         
+        # --- Quick Alert UI (Relocated) ---
+        with st.expander("🔔 Set Real-Time Price Alert", expanded=False):
+            c1, c2 = st.columns([2, 1])
+            with c1:
+                cur_p = float(df['Close'].iloc[-1])
+                new_a = st.number_input(f"Target Price for {ticker}", value=cur_p, step=1.0, key="screen_alert_val")
+            with c2:
+                if st.button("Confirm Alert", use_container_width=True, key="screen_alert_btn"):
+                    if 'alerts' not in st.session_state: st.session_state['alerts'] = []
+                    st.session_state['alerts'].append({"ticker": ticker, "price": new_a, "active": True})
+                    st.toast(f"Alert Active: {ticker} @ ₹{new_a}", icon="🚀")
+        st.divider()
+        
         # 1. Fundamentals Section (New)
         if analyzer.info:
             with st.container():
@@ -260,17 +273,6 @@ if page == "🔍 Deep Analyzer":
                     st.write(f"**52W Range:** ₹{info['52w_low']:.2f} - ₹{info['52w_high']:.2f}")
                     st.write(info['summary'])
                 
-                # --- Quick Alert Section (New) ---
-                st.write("---")
-                c1, c2 = st.columns([2, 1])
-                with c1:
-                    new_alert = st.number_input(f"Set Price Alert for {ticker}", value=float(df['Close'].iloc[-1]), step=1.0)
-                with c2:
-                    if st.button("🔔 Set Alert", use_container_width=True):
-                        if 'alerts' not in st.session_state: st.session_state['alerts'] = []
-                        st.session_state['alerts'].append({"ticker": ticker, "price": new_alert, "active": True})
-                        st.toast(f"Alert set for {ticker} @ ₹{new_alert}", icon="🔔")
-
                 st.divider()
 
         # 2. Candlestick Chart (Interactive)
@@ -359,16 +361,23 @@ if page == "🔍 Deep Analyzer":
             
         st.plotly_chart(proj_fig, use_container_width=True)
 
-        # 4. News Section (New)
+        # 4. News Section (Optimized)
         st.subheader("📰 Latest News")
         if analyzer.news:
             for n in analyzer.news:
-                with st.expander(n.get('title', 'News Item')):
-                    st.write(f"**Publisher:** {n.get('publisher', 'N/A')}")
-                    st.write(f"**Published:** {n.get('link', '')}")
-                    # Note: yfinance news format can vary, but this covers the basics
+                # yfinance news keys: 'title', 'publisher', 'link', 'providerPublishTime'
+                title = n.get('title', n.get('headline', 'News Update'))
+                pub = n.get('publisher', n.get('source', 'Financial News'))
+                url = n.get('link', n.get('url', '#'))
+                
+                with st.expander(f"📌 {title}"):
+                    st.write(f"**Source:** {pub}")
+                    if url != '#':
+                        st.markdown(f"[Read Full Article]({url})")
+                    else:
+                        st.write("*Link unavailable*")
         else:
-            st.write("No recent news found for this ticker.")
+            st.info("No recent headlines found for this stock.")
 
 elif page == "📊 Portfolio & Analytics":
     st.header("📊 Portfolio Performance & Analytics")
