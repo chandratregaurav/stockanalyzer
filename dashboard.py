@@ -72,11 +72,19 @@ with st.sidebar:
     st.session_state['audio_enabled'] = st.checkbox("🔊 Enable Sound Alerts", value=True)
     st.divider()
 
-page = st.sidebar.radio(
-    "Navigation", 
-    ["🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)"],
-    key="nav_sidebar"
-)
+# --- Sidebar Navigation Logic ---
+nav_options = ["🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)"]
+nav_index = 0
+
+# Check for manual page override
+if 'manual_page' in st.session_state:
+    try:
+        nav_index = nav_options.index(st.session_state['manual_page'])
+        del st.session_state['manual_page'] # Use once then reset
+    except:
+        nav_index = 0
+
+page = st.sidebar.radio("Navigation", nav_options, index=nav_index)
 
 if page == "🔍 Deep Analyzer":
     # --- Sidebar Inputs for Analyzer ---
@@ -85,10 +93,13 @@ if page == "🔍 Deep Analyzer":
         
         # Ticker Selection & Search
         st.write("### 🔍 Search Stock")
+        initial_search = st.session_state.get('manual_ticker', "")
+        if 'manual_ticker' in st.session_state:
+            del st.session_state['manual_ticker'] # Reset
+            
         custom_search = st.text_input(
             "Enter Ticker (e.g. RELIANCE.NS)", 
-            value=st.session_state.get('auto_search_val', ""),
-            key="analyzer_search"
+            value=initial_search
         ).upper()
         
         ticker_suggestion = st.selectbox(
@@ -118,7 +129,6 @@ if page == "🔍 Deep Analyzer":
         
         # Auto-trigger if redirected
         if st.session_state.get('trigger_analyze', False):
-             ticker_input = st.session_state.get('auto_search_val', ticker_suggestion)
              st.session_state['trigger_analyze'] = False # Reset
              auto_click = True
         else:
@@ -251,8 +261,9 @@ elif page == "🚀 Trending Picks (Top 5)":
                     
                 with col3:
                      if st.button(f"Analyze {pick['ticker']}", key=f"btn_trend_global_{i}"):
-                         st.session_state['nav_sidebar'] = "🔍 Deep Analyzer"
-                         st.session_state['auto_search_val'] = pick['ticker']
+                         # Use manual override variables to avoid StreamlitAPIException
+                         st.session_state['manual_page'] = "🔍 Deep Analyzer"
+                         st.session_state['manual_ticker'] = pick['ticker']
                          st.session_state['trigger_analyze'] = True
                          st.rerun()
                 
@@ -475,8 +486,9 @@ elif page == "⚡ Intraday Surge (1-2 Hr)":
                         st.write(f"**Why:** {pick['reasons']}")
                     with c3:
                         if st.button(f"Analyze {pick['ticker']}", key=f"btn_trend_intra_{i}"):
-                             st.session_state['nav_sidebar'] = "🔍 Deep Analyzer"
-                             st.session_state['auto_search_val'] = pick['ticker']
+                             # Use manual override variables to avoid StreamlitAPIException
+                             st.session_state['manual_page'] = "🔍 Deep Analyzer"
+                             st.session_state['manual_ticker'] = pick['ticker']
                              st.session_state['trigger_analyze'] = True
                              st.rerun()
                     st.divider()
