@@ -277,6 +277,51 @@ class StockAnalyzer:
             'start_data_date': str(start_data_date)
         }
 
+    def get_pros_cons(self):
+        """Generates heuristic-based Pros and Cons for the stock."""
+        pros = []
+        cons = []
+        
+        info = self.info
+        df = self.data
+        
+        if not info or df is None or df.empty:
+            return [], []
+
+        # Fundamental Pros/Cons
+        pe = info.get('pe', 0)
+        div = info.get('dividend_yield', 0)
+        beta = info.get('beta', 0)
+        
+        if 0 < pe < 20: pros.append("Attractive P/E: Stock is potentially undervalued relative to earnings.")
+        elif pe > 50: cons.append("High P/E Ratio: Stock is trading at a high premium.")
+        
+        if div > 2: pros.append(f"Strong Dividends: Yield of {div:.1f}% provides passive income.")
+        
+        if beta > 1.5: cons.append(f"High Volatility: Beta of {beta:.2f} suggests significant price swings.")
+        elif 0 < beta < 0.8: pros.append(f"Low Volatility: Beta of {beta:.2f} suggests a defensive, stable stock.")
+
+        # Technical Pros/Cons
+        cur_price = df['Close'].iloc[-1]
+        if 'EMA200' in df.columns:
+            ema200 = df['EMA200'].iloc[-1]
+            if cur_price > ema200: pros.append("Bullish Trend: Trading above the 200-day EMA.")
+            else: cons.append("Bearish Trend: Trading below the 200-day EMA.")
+
+        # RSI logic (Calculate if not present)
+        if 'RSI' not in df.columns:
+            from stock_screener import StockScreener
+            screener = StockScreener([]) # Empty for helper
+            df['RSI'] = screener.calculate_rsi(df['Close'])
+            
+        rsi = df['RSI'].iloc[-1]
+        if not np.isnan(rsi):
+            if rsi < 35: pros.append(f"Oversold Condition: RSI ({rsi:.0f}) suggests a potential bounce.")
+            elif rsi > 75: cons.append(f"Overbought Condition: RSI ({rsi:.0f}) suggests a possible correction.")
+            elif 45 < rsi < 65: pros.append("Healthy Momentum: RSI is in a stable neutral-bullish zone.")
+
+        return pros, cons
+
 if __name__ == "__main__":
     # Simple test
     analyzer = StockAnalyzer("GOOGL")

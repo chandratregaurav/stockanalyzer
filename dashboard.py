@@ -403,44 +403,42 @@ elif page == "🔍 Deep Analyzer":
         
         st.header(f"{ticker} Analysis ({len(df)} candles)")
         
-        # --- Quick Alert UI (Relocated) ---
-        with st.expander("🔔 Set Real-Time Price Alert", expanded=False):
-            c1, c2 = st.columns([2, 1])
-            with c1:
-                cur_p = float(df['Close'].iloc[-1])
-                new_a = st.number_input(f"Target Price for {ticker}", value=cur_p, step=1.0, key="screen_alert_val")
-            with c2:
-                if st.button("Confirm Alert", use_container_width=True, key="screen_alert_btn"):
-                    if 'alerts' not in st.session_state: st.session_state['alerts'] = []
-                    st.session_state['alerts'].append({"ticker": ticker, "price": new_a, "active": True})
-                    st.toast(f"Alert Active: {ticker} @ ₹{new_a}", icon="🚀")
-        st.divider()
-        
-        # --- Chart Controls (Relocated) ---
-        st.subheader("📊 Chart Customization")
-        cc1, cc2, cc3 = st.columns(3)
-        with cc1: show_bb = st.checkbox("Bollinger Bands", value=False)
-        with cc2: show_emas = st.checkbox("EMA Cloud (20/50/200)", value=False)
-        with cc3: show_macd = st.checkbox("MACD Indicator", value=True)
-        st.divider()
-        
-        # 1. Fundamentals Section (New)
+        # 1. Fundamentals Section (Moved to Top)
         if analyzer.info:
             with st.container():
-                st.subheader("🏛️ Fundamentals & Info")
+                st.subheader(f"🏛️ {ticker} Overview")
                 info = analyzer.info
+                # Professional Styling for Summary
+                st.markdown(f"**Sector:** {info['sector']} | **52W Range:** ₹{info['52w_low']:.2f} - ₹{info['52w_high']:.2f}")
+                st.write(info['summary'])
+                st.write("") # Spacer
+
                 c1, c2, c3, c4 = st.columns(4)
                 c1.metric("Market Cap", f"₹{info['market_cap']/1e7:.1f} Cr")
                 c2.metric("P/E Ratio", f"{info['pe']:.1f}")
                 c3.metric("Div. Yield", f"{info['dividend_yield']:.1f}%")
                 c4.metric("Beta", f"{info['beta']:.2f}")
-                
-                with st.expander("Business Summary"):
-                    st.write(f"**Sector:** {info['sector']}")
-                    st.write(f"**52W Range:** ₹{info['52w_low']:.2f} - ₹{info['52w_high']:.2f}")
-                    st.write(info['summary'])
-                
                 st.divider()
+
+        # 2. Alert & Chart Controls
+        ac1, ac2 = st.columns([1, 2])
+        with ac1:
+            with st.expander("🔔 Set Price Alert", expanded=False):
+                cur_p = float(df['Close'].iloc[-1])
+                new_a = st.number_input(f"Target", value=cur_p, step=1.0, key="screen_alert_val", label_visibility="collapsed")
+                if st.button("Confirm Alert", use_container_width=True, key="screen_alert_btn"):
+                    if 'alerts' not in st.session_state: st.session_state['alerts'] = []
+                    st.session_state['alerts'].append({"ticker": ticker, "price": new_a, "active": True})
+                    st.toast(f"Alert Active: {ticker} @ ₹{new_a}", icon="🚀")
+        
+        with ac2:
+             st.write("**📊 Chart Customization**")
+             cc1, cc2, cc3 = st.columns(3)
+             with cc1: show_bb = st.checkbox("BBands", value=False)
+             with cc2: show_emas = st.checkbox("EMA Cloud", value=False)
+             with cc3: show_macd = st.checkbox("MACD", value=True)
+        
+        st.divider()
 
         from plotly.subplots import make_subplots
         
@@ -537,7 +535,27 @@ elif page == "🔍 Deep Analyzer":
             
         st.plotly_chart(proj_fig, use_container_width=True)
 
-        # 4. News Section (Optimized)
+        # 5. Professional Verdict (Pros & Cons)
+        st.subheader("⚖️ Professional Verdict")
+        pros, cons = analyzer.get_pros_cons()
+        
+        pc1, pc2 = st.columns(2)
+        with pc1:
+            st.success("✅ **Strengths (Pros)**")
+            if pros:
+                for p in pros: st.write(f"• {p}")
+            else:
+                st.write("*Analyzing fundamentals...*")
+        with pc2:
+            st.error("⚠️ **Risks (Cons)**")
+            if cons:
+                for c in cons: st.write(f"• {c}")
+            else:
+                st.write("*No major technical risks detected.*")
+        
+        st.divider()
+
+        # 6. News Section (Optimized)
         st.subheader("📰 Latest News")
         if analyzer.news:
             for n in analyzer.news:
