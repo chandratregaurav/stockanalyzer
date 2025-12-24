@@ -602,10 +602,17 @@ elif page == "🔍 Deep Analyzer":
         )
     
     with c_d:
-        with st.expander("📅 Custom Settings"):
-            s_date = st.date_input("Start Date", date.today() - timedelta(days=365))
-            e_date = st.date_input("End Date", date.today())
-            i_choice = st.selectbox("Interval", ["Daily (1d)", "Hourly (1h)", "5-Min (5m)"])
+        if period_preset == "Custom":
+            with st.expander("📅 Select Dates/Interval", expanded=True):
+                s_date = st.date_input("Start Date", date.today() - timedelta(days=365))
+                e_date = st.date_input("End Date", date.today())
+                i_choice = st.selectbox("Interval", ["Daily (1d)", "Hourly (1h)", "5-Min (5m)"])
+        else:
+            st.markdown("""
+            <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); font-size: 13px; text-align: center; opacity: 0.8;">
+                ⚡ Auto-Period Active
+            </div>
+            """, unsafe_allow_html=True)
 
     # Period Logic
     if period_preset != "Custom":
