@@ -69,37 +69,33 @@ POPULAR_STOCKS = [
 # --- Sidebar Navigation ---
 with st.sidebar:
     st.header("⚙️ Controls")
-    st.session_state['audio_enabled'] = st.checkbox("🔊 Enable Sound Alerts", value=True)
-    st.divider()
-
 # --- Sidebar Navigation Logic ---
 nav_options = ["🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)"]
-nav_index = 0
 
-# Check for manual page override
+# Use a specific key for navigation that we can override safely
 if 'manual_page' in st.session_state:
     try:
-        nav_index = nav_options.index(st.session_state['manual_page'])
-        del st.session_state['manual_page'] # Use once then reset
+        # Update the radio key directly before the widget is created
+        st.session_state['nav_sidebar'] = st.session_state['manual_page']
+        del st.session_state['manual_page']
     except:
-        nav_index = 0
+        pass
 
-page = st.sidebar.radio("Navigation", nav_options, index=nav_index)
+page = st.sidebar.radio("Navigation", nav_options, key="nav_sidebar")
 
 if page == "🔍 Deep Analyzer":
     # --- Sidebar Inputs for Analyzer ---
-    with st.sidebar:
-        st.header("Configuration")
-        
         # Ticker Selection & Search
         st.write("### 🔍 Search Stock")
-        initial_search = st.session_state.get('manual_ticker', "")
+        
+        # Override search value if manual_ticker is set
         if 'manual_ticker' in st.session_state:
-            del st.session_state['manual_ticker'] # Reset
+            st.session_state['analyzer_search'] = st.session_state['manual_ticker']
+            del st.session_state['manual_ticker']
             
-        custom_search = st.text_input(
+        ticker_input = st.text_input(
             "Enter Ticker (e.g. RELIANCE.NS)", 
-            value=initial_search
+            key="analyzer_search"
         ).upper()
         
         ticker_suggestion = st.selectbox(
@@ -108,7 +104,9 @@ if page == "🔍 Deep Analyzer":
             index=0
         )
         
-        ticker_input = custom_search if custom_search else ticker_suggestion
+        # Priority: Typed Input > Suggestion
+        if not ticker_input:
+            ticker_input = ticker_suggestion
         
         # Date Selection
         c1, c2 = st.columns(2)
