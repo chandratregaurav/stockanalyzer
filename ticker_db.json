@@ -1,0 +1,334 @@
+[
+    {
+        "name": "3M India Ltd.",
+        "symbol": "3MINDIA"
+    },
+    {
+        "name": "ABB India Ltd.",
+        "symbol": "ABB"
+    },
+    {
+        "name": "ACC Ltd.",
+        "symbol": "ACC"
+    },
+    {
+        "name": "AIA Engineering Ltd.",
+        "symbol": "AIAENG"
+    },
+    {
+        "name": "APL Apollo Tubes Ltd.",
+        "symbol": "APLAPOLLO"
+    },
+    {
+        "name": "AU Small Finance Bank Ltd.",
+        "symbol": "AUBANK"
+    },
+    {
+        "name": "Aavas Financiers Ltd.",
+        "symbol": "AAVAS"
+    },
+    {
+        "name": "Adani Green Energy Ltd.",
+        "symbol": "ADANIGREEN"
+    },
+    {
+        "name": "Adani Ports and Special Economic Zone Ltd.",
+        "symbol": "ADANIPORTS"
+    },
+    {
+        "name": "Adani Power Ltd.",
+        "symbol": "ADANIPOWER"
+    },
+    {
+        "name": "Adani Transmission Ltd.",
+        "symbol": "ADANITRANS"
+    },
+    {
+        "name": "Aditya Birla Capital Ltd.",
+        "symbol": "ABCAPITAL"
+    },
+    {
+        "name": "Aditya Birla Fashion and Retail Ltd.",
+        "symbol": "ABFRL"
+    },
+    {
+        "name": "Advanced Enzyme Tech Ltd.",
+        "symbol": "ADVENZYMES"
+    },
+    {
+        "name": "Aegis Logistics Ltd.",
+        "symbol": "AEGISCHEM"
+    },
+    {
+        "name": "Ajanta Pharmaceuticals Ltd.",
+        "symbol": "AJANTPHARM"
+    },
+    {
+        "name": "Akzo Nobel India Ltd.",
+        "symbol": "AKZOINDIA"
+    },
+    {
+        "name": "Alembic Pharmaceuticals Ltd.",
+        "symbol": "APLLTD"
+    },
+    {
+        "name": "Alkem Laboratories Ltd.",
+        "symbol": "ALKEM"
+    },
+    {
+        "name": "Allahabad Bank",
+        "symbol": "ALBK"
+    },
+    {
+        "name": "Allcargo Logistics Ltd.",
+        "symbol": "ALLCARGO"
+    },
+    {
+        "name": "Amara Raja Batteries Ltd.",
+        "symbol": "AMARAJABAT"
+    },
+    {
+        "name": "Ambuja Cements Ltd.",
+        "symbol": "AMBUJACEM"
+    },
+    {
+        "name": "Andhra Bank",
+        "symbol": "ANDHRABANK"
+    },
+    {
+        "name": "Apollo Hospitals Enterprise Ltd.",
+        "symbol": "APOLLOHOSP"
+    },
+    {
+        "name": "Apollo Tyres Ltd.",
+        "symbol": "APOLLOTYRE"
+    },
+    {
+        "name": "Ashok Leyland Ltd.",
+        "symbol": "ASHOKLEY"
+    },
+    {
+        "name": "Ashoka Buildcon Ltd.",
+        "symbol": "ASHOKA"
+    },
+    {
+        "name": "Asian Paints Ltd.",
+        "symbol": "ASIANPAINT"
+    },
+    {
+        "name": "Aster DM Healthcare Ltd.",
+        "symbol": "ASTERDM"
+    },
+    {
+        "name": "AstraZenca Pharma India Ltd.",
+        "symbol": "ASTRAZEN"
+    },
+    {
+        "name": "Astral Poly Technik Ltd.",
+        "symbol": "ASTRAL"
+    },
+    {
+        "name": "Atul Ltd.",
+        "symbol": "ATUL"
+    },
+    {
+        "name": "Aurobindo Pharma Ltd.",
+        "symbol": "AUROPHARMA"
+    },
+    {
+        "name": "Avanti Feeds Ltd.",
+        "symbol": "AVANTIFEED"
+    },
+    {
+        "name": "Avenue Supermarts Ltd.",
+        "symbol": "DMART"
+    },
+    {
+        "name": "Axis Bank Ltd.",
+        "symbol": "AXISBANK"
+    },
+    {
+        "name": "BASF India Ltd.",
+        "symbol": "BASF"
+    },
+    {
+        "name": "BEML Ltd.",
+        "symbol": "BEML"
+    },
+    {
+        "name": "BSE Ltd.",
+        "symbol": "BSE"
+    },
+    {
+        "name": "Bajaj Auto Ltd.",
+        "symbol": "BAJAJ-AUTO"
+    },
+    {
+        "name": "Bajaj Consumer Care Ltd.",
+        "symbol": "BAJAJCON"
+    },
+    {
+        "name": "Bajaj Electricals Ltd",
+        "symbol": "BAJAJELEC"
+    },
+    {
+        "name": "Bajaj Finance Ltd.",
+        "symbol": "BAJFINANCE"
+    },
+    {
+        "name": "Bajaj Finserv Ltd.",
+        "symbol": "BAJAJFINSV"
+    },
+    {
+        "name": "Bajaj Holdings & Investment Ltd.",
+        "symbol": "BAJAJHLDNG"
+    },
+    {
+        "name": "Balkrishna Industries Ltd.",
+        "symbol": "BALKRISIND"
+    },
+    {
+        "name": "Balmer Lawrie & Co. Ltd.",
+        "symbol": "BALMLAWRIE"
+    },
+    {
+        "name": "Balrampur Chini Mills Ltd.",
+        "symbol": "BALRAMCHIN"
+    },
+    {
+        "name": "Bandhan Bank Ltd.",
+        "symbol": "BANDHANBNK"
+    },
+    {
+        "name": "Bank of Baroda",
+        "symbol": "BANKBARODA"
+    },
+    {
+        "name": "Bank of India",
+        "symbol": "BANKINDIA"
+    },
+    {
+        "name": "Bank of Maharashtra.",
+        "symbol": "MAHABANK"
+    },
+    {
+        "name": "Bata India Ltd.",
+        "symbol": "BATAINDIA"
+    },
+    {
+        "name": "Berger Paints India Ltd.",
+        "symbol": "BERGEPAINT"
+    },
+    {
+        "name": "Bharat Dynamics Ltd.",
+        "symbol": "BDL"
+    },
+    {
+        "name": "Bharat Electronics Ltd.",
+        "symbol": "BEL"
+    },
+    {
+        "name": "Bharat Forge Ltd.",
+        "symbol": "BHARATFORG"
+    },
+    {
+        "name": "Bharat Heavy Electricals Ltd.",
+        "symbol": "BHEL"
+    },
+    {
+        "name": "Bharat Petroleum Corporation Ltd.",
+        "symbol": "BPCL"
+    },
+    {
+        "name": "Bharti Airtel Ltd.",
+        "symbol": "BHARTIARTL"
+    },
+    {
+        "name": "Bharti Infratel Ltd.",
+        "symbol": "INFRATEL"
+    },
+    {
+        "name": "Biocon Ltd.",
+        "symbol": "BIOCON"
+    },
+    {
+        "name": "Birla Corporation Ltd.",
+        "symbol": "BIRLACORPN"
+    },
+    {
+        "name": "Bliss GVS Pharma Ltd.",
+        "symbol": "BLISSGVS"
+    },
+    {
+        "name": "Blue Dart Express Ltd.",
+        "symbol": "BLUEDART"
+    },
+    {
+        "name": "Blue Star Ltd.",
+        "symbol": "BLUESTARCO"
+    },
+    {
+        "name": "Bombay Burmah Trading Corporation Ltd.",
+        "symbol": "BBTC"
+    },
+    {
+        "name": "Bombay Dyeing & Manufacturing Co. Ltd.",
+        "symbol": "BOMDYEING"
+    },
+    {
+        "name": "Bosch Ltd.",
+        "symbol": "BOSCHLTD"
+    },
+    {
+        "name": "Brigade Enterprises Ltd.",
+        "symbol": "BRIGADE"
+    },
+    {
+        "name": "Britannia Industries Ltd.",
+        "symbol": "BRITANNIA"
+    },
+    {
+        "name": "RELIANCE INDUSTRIES LTD",
+        "symbol": "RELIANCE"
+    },
+    {
+        "name": "TATA CONSULTANCY SERVICES LTD",
+        "symbol": "TCS"
+    },
+    {
+        "name": "INFOSYS LTD",
+        "symbol": "INFY"
+    },
+    {
+        "name": "HDFC BANK LTD",
+        "symbol": "HDFCBANK"
+    },
+    {
+        "name": "ICICI BANK LTD",
+        "symbol": "ICICIBANK"
+    },
+    {
+        "name": "STATE BANK OF INDIA",
+        "symbol": "SBIN"
+    },
+    {
+        "name": "ITC LTD",
+        "symbol": "ITC"
+    },
+    {
+        "name": "KOTAK MAHINDRA BANK LTD",
+        "symbol": "KOTAKBANK"
+    },
+    {
+        "name": "COAL INDIA LTD",
+        "symbol": "COALINDIA"
+    },
+    {
+        "name": "SUN PHARMACEUTICAL INDUSTRIES LTD",
+        "symbol": "SUNPHARMA"
+    },
+    {
+        "name": "ZOMATO LTD",
+        "symbol": "ZOMATO"
+    }
+]

@@ -5,6 +5,8 @@ import plotly.graph_objects as go
 from datetime import date, timedelta, datetime
 import time
 import importlib
+import json
+import os
 
 # --- Page Configuration (MUST be first Streamlit command) ---
 st.set_page_config(page_title="Stock Analysis Pro", layout="wide")
@@ -57,6 +59,17 @@ def play_alert_sound():
 st.title("📈 Stock Analysis & Projection")
 
 # --- Constants ---
+def load_ticker_db():
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(base_path, "ticker_db.json")
+    if os.path.exists(db_path):
+        with open(db_path, "r") as f:
+            return json.load(f)
+    return []
+
+TICKER_DB = load_ticker_db()
+TICKER_OPTIONS = [f"{s['name']} ({s['symbol']})" for s in TICKER_DB]
+
 POPULAR_STOCKS = [
     "RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "ICICIBANK.NS",
     "SBIN.NS", "BHARTIARTL.NS", "ITC.NS", "KOTAKBANK.NS", "LICI.NS",
@@ -105,36 +118,51 @@ if page == "🔍 Deep Analyzer":
         # Get target ticker or default
         ticker_val = st.session_state.get('ticker_target', "")
         
-        # Selectbox index logic
+        # 1. Searchable Autocomplete (Name + Symbol)
         select_idx = 0
-        if ticker_val in POPULAR_STOCKS:
-            select_idx = POPULAR_STOCKS.index(ticker_val)
+        if ticker_val:
+            # Strip suffix for matching if needed
+            clean_ticker = ticker_val.split('.')[0]
+            for i, opt in enumerate(TICKER_OPTIONS):
+                if f"({clean_ticker})" in opt:
+                    select_idx = i
+                    break
 
+        ticker_selection = st.selectbox(
+            "Search by Name or Ticker",
+            TICKER_OPTIONS,
+            index=select_idx,
+            help="Type to search through 100+ stocks"
+        )
+        
+        # Extract symbol from selection: "Name (SYMBOL)" -> "SYMBOL"
+        selected_symbol = ticker_selection.split('(')[-1].split(')')[0]
+
+        # 2. Manual Entry (With Auto-Uppercase logic)
         ticker_input_raw = st.text_input(
-            "Enter Ticker (e.g. RELIANCE.NS)", 
-            value=ticker_val
+            "Or Type Manually (Auto-Uppercase)", 
+            value=ticker_val,
+            placeholder="e.g. RELIANCE"
         ).upper()
         
-        # Reset target after use so it doesn't stay sticky
+        # Reset target after use
         if 'ticker_target' in st.session_state:
             del st.session_state['ticker_target']
         
-        ticker_suggestion = st.selectbox(
-            "Or Select from Popular",
-            POPULAR_STOCKS,
-            index=select_idx
-        )
-        
-        # Priority: Typed Input (with suffix) > Suggestion (if different)
-        if ticker_input_raw:
-            # Auto-append suffix if missing and not already there
-            suffix = ".NS" if st.session_state['exchange'] == "NSE" else ".BO"
+        # Priority: Manual Input (if changed/typed) > Selection
+        # We check if input is different from the selection's symbol or if it was explicitly typed
+        if ticker_input_raw and ticker_input_raw != selected_symbol:
+            # Auto-append suffix if missing
+            suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
             if "." not in ticker_input_raw:
                 ticker_input = f"{ticker_input_raw}{suffix}"
             else:
                 ticker_input = ticker_input_raw
         else:
-            ticker_input = ticker_suggestion
+            # Use selection, append current exchange suffix if it's a raw symbol
+            # (Note: DB symbols are raw without .NS/.BO)
+            suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
+            ticker_input = f"{selected_symbol}{suffix}"
         
         # Date Selection
         c1, c2 = st.columns(2)
