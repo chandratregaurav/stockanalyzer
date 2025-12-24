@@ -70,6 +70,7 @@ POPULAR_STOCKS = [
 with st.sidebar:
     st.header("⚙️ Controls")
     st.session_state['audio_enabled'] = st.checkbox("🔊 Enable Sound Alerts", value=True)
+    st.session_state['exchange'] = st.radio("Select Exchange", ["NSE", "BSE"], horizontal=True)
     st.divider()
 # --- Sidebar Navigation Logic (Robust) ---
 nav_options = ["🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)"]
@@ -124,8 +125,16 @@ if page == "🔍 Deep Analyzer":
             index=select_idx
         )
         
-        # Priority: Typed Input > Suggestion (if different)
-        ticker_input = ticker_input_raw if ticker_input_raw else ticker_suggestion
+        # Priority: Typed Input (with suffix) > Suggestion (if different)
+        if ticker_input_raw:
+            # Auto-append suffix if missing and not already there
+            suffix = ".NS" if st.session_state['exchange'] == "NSE" else ".BO"
+            if "." not in ticker_input_raw:
+                ticker_input = f"{ticker_input_raw}{suffix}"
+            else:
+                ticker_input = ticker_input_raw
+        else:
+            ticker_input = ticker_suggestion
         
         # Date Selection
         c1, c2 = st.columns(2)
