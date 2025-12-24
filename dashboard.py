@@ -451,13 +451,28 @@ if page == "Home":
         st.write("Always wait for confirmation from the **EMA Cloud** before entering a trade on a breakout star.")
 
 elif page == "💎 Potential Multibaggers":
-    st.title("💎 Potential Multibaggers (High Growth Radar)")
-    st.info("Scanner objective: Small/Mid-cap stocks showing early accumulation, strong relative strength, and healthy fundamental proxies.")
+    st.title("💎 Potential Multibaggers (Advanced Strategy Scan)")
+    st.info("Scanner objective: Identify high-growth gems using professional institutional-grade filters. **Note:** Scans are randomized to prevent ticker bias.")
     
-    if st.button("🚀 Run Multibagger Scan", type="primary", use_container_width=True):
-        with st.spinner("Executing Strong Formula Scan on 500+ Indian Stocks..."):
+    # Strategy Selector
+    strat_col1, strat_col2 = st.columns([2, 1])
+    with strat_col1:
+        selected_strat = st.selectbox(
+            "🎯 Select Multibagger Strategy",
+            ["Strong Formula (Default)", "CAN SLIM (William O'Neil)", "Minervini Trend Template", "Low-Cap Moonshot (Beta)"],
+            help="Choose the screening logic used to find potential 10x stocks."
+        )
+    
+    with strat_col2:
+        st.write("") # Spacer
+        run_scan = st.button("🚀 Run Strategy Scan", type="primary", use_container_width=True)
+
+    if run_scan:
+        with st.spinner(f"Executing {selected_strat} on 500+ Indian Stocks..."):
             screener = StockScreener([s['symbol'] for s in TICKER_DB])
-            candidates = screener.get_multibagger_candidates(limit=10)
+            # Map choice to backend key
+            strat_key = selected_strat.split(' (')[0] if '(' in selected_strat else selected_strat.split(' (')[0]
+            candidates = screener.get_multibagger_candidates(limit=10, strategy=selected_strat)
             
             if candidates:
                 st.write(f"### 💎 Top 10 Multibagger Recommendations")
