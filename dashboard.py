@@ -69,6 +69,8 @@ POPULAR_STOCKS = [
 # --- Sidebar Navigation ---
 with st.sidebar:
     st.header("⚙️ Controls")
+    st.session_state['audio_enabled'] = st.checkbox("🔊 Enable Sound Alerts", value=True)
+    st.divider()
 # --- Sidebar Navigation Logic ---
 nav_options = ["🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)"]
 
@@ -86,6 +88,8 @@ page = st.sidebar.radio("Navigation", nav_options, index=nav_index)
 
 if page == "🔍 Deep Analyzer":
     # --- Sidebar Inputs for Analyzer ---
+    with st.sidebar:
+        st.header("Configuration")
         # Ticker Selection & Search
         st.write("### 🔍 Search Stock")
         
