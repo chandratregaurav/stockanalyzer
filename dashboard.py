@@ -72,31 +72,34 @@ with st.sidebar:
 # --- Sidebar Navigation Logic ---
 nav_options = ["🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)"]
 
-# Use a specific key for navigation that we can override safely
-if 'manual_page' in st.session_state:
-    try:
-        # Update the radio key directly before the widget is created
-        st.session_state['nav_sidebar'] = st.session_state['manual_page']
-        del st.session_state['manual_page']
-    except:
-        pass
+# Initialize target page if not set
+if 'page_target' not in st.session_state:
+    st.session_state['page_target'] = nav_options[0]
 
-page = st.sidebar.radio("Navigation", nav_options, key="nav_sidebar")
+# Calculate index for radio
+try:
+    nav_index = nav_options.index(st.session_state['page_target'])
+except:
+    nav_index = 0
+
+page = st.sidebar.radio("Navigation", nav_options, index=nav_index)
 
 if page == "🔍 Deep Analyzer":
     # --- Sidebar Inputs for Analyzer ---
         # Ticker Selection & Search
         st.write("### 🔍 Search Stock")
         
-        # Override search value if manual_ticker is set
-        if 'manual_ticker' in st.session_state:
-            st.session_state['analyzer_search'] = st.session_state['manual_ticker']
-            del st.session_state['manual_ticker']
-            
+        # Get target ticker or default
+        ticker_val = st.session_state.get('ticker_target', "")
+        
         ticker_input = st.text_input(
             "Enter Ticker (e.g. RELIANCE.NS)", 
-            key="analyzer_search"
+            value=ticker_val
         ).upper()
+        
+        # Reset target after use so it doesn't stay sticky
+        if 'ticker_target' in st.session_state:
+            del st.session_state['ticker_target']
         
         ticker_suggestion = st.selectbox(
             "Or Select from Popular",
@@ -259,9 +262,8 @@ elif page == "🚀 Trending Picks (Top 5)":
                     
                 with col3:
                      if st.button(f"Analyze {pick['ticker']}", key=f"btn_trend_global_{i}"):
-                         # Use manual override variables to avoid StreamlitAPIException
-                         st.session_state['manual_page'] = "🔍 Deep Analyzer"
-                         st.session_state['manual_ticker'] = pick['ticker']
+                         st.session_state['page_target'] = "🔍 Deep Analyzer"
+                         st.session_state['ticker_target'] = pick['ticker']
                          st.session_state['trigger_analyze'] = True
                          st.rerun()
                 
@@ -484,9 +486,8 @@ elif page == "⚡ Intraday Surge (1-2 Hr)":
                         st.write(f"**Why:** {pick['reasons']}")
                     with c3:
                         if st.button(f"Analyze {pick['ticker']}", key=f"btn_trend_intra_{i}"):
-                             # Use manual override variables to avoid StreamlitAPIException
-                             st.session_state['manual_page'] = "🔍 Deep Analyzer"
-                             st.session_state['manual_ticker'] = pick['ticker']
+                             st.session_state['page_target'] = "🔍 Deep Analyzer"
+                             st.session_state['ticker_target'] = pick['ticker']
                              st.session_state['trigger_analyze'] = True
                              st.rerun()
                     st.divider()
