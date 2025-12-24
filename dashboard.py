@@ -139,23 +139,20 @@ if 'page_target' in st.session_state:
     del st.session_state['page_target']
 
 if page == "🔍 Deep Analyzer":
-    # --- Sidebar Inputs for Analyzer ---
+    # --- Sidebar Inputs (Search Only) ---
     with st.sidebar:
-        st.header("Configuration")
+        st.header("Stock Selection")
         # Ticker Selection & Search
         st.write("### 🔍 Search Stock")
         
         # Get target ticker or default
         ticker_val = st.session_state.get('ticker_target', "")
         
-        # Helper: Sync Logic
         def sync_from_list():
-            if st.session_state['master_search']:
+            if st.session_state.get('master_search'):
                 sym = st.session_state['master_search'].split(' - ')[0]
                 st.session_state['manual_ticker'] = sym
 
-        # 1. Universal Search (SYMBOL - NAME)
-        # We find the pre-selected index if ticker_val exists
         select_idx = None
         if ticker_val:
             clean_ticker = ticker_val.split('.')[0]
@@ -173,7 +170,6 @@ if page == "🔍 Deep Analyzer":
             help="Type to search through 500+ Indian stocks"
         )
 
-        # 2. Manual Ticker (Auto-Uppercase via CSS + Logic)
         ticker_input_raw = st.text_input(
             "Ticker (e.g. RELIANCE)", 
             value=ticker_val if ticker_val else "",
@@ -181,91 +177,75 @@ if page == "🔍 Deep Analyzer":
             help="Characters appear in UPPERCASE as you type!"
         ).upper()
         
-        # Show detected name if ticker matches
         clean_manual = ticker_input_raw.split('.')[0]
         if clean_manual in TICKER_MAP:
              st.caption(f"✨ Detected: **{TICKER_MAP[clean_manual]}**")
 
-        # Cleanup target
         if 'ticker_target' in st.session_state:
             del st.session_state['ticker_target']
         
-        # Final Ticker Processing
         if ticker_input_raw:
             suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
             ticker_input = ticker_input_raw if "." in ticker_input_raw else f"{ticker_input_raw}{suffix}"
         else:
-            # Fallback to selection if manual is empty
             if st.session_state.get('master_search'):
                 sym = st.session_state['master_search'].split(' - ')[0]
                 suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
                 ticker_input = f"{sym}{suffix}"
             else:
-                ticker_input = "RELIANCE.NS" # True fallback
-        
-        # Date Selection (Manual)
-        st.write("---")
-        with st.expander("📅 Custom Date Range", expanded=False):
-            c1, c2 = st.columns(2)
-            with c1:
-                start_date = st.date_input("Start Date", date.today() - timedelta(days=365))
-            with c2:
-                 end_date = st.date_input("End Date", date.today())
-            
-            interval_choice = st.selectbox("Data Interval", ["Daily (1d)", "Hourly (1h)", "5-Min (5m)"])
+                ticker_input = "RELIANCE.NS"
 
-        # --- Quick Period Presets (New) ---
-        st.write("### ⏱️ Quick Period")
-        period_preset = st.radio(
-            "Select View",
+    # --- Main Screen Configuration (Relocated) ---
+    st.header(f"🔍 Deep Analyzer: **{ticker_input}**")
+    
+    # ⏱️ Quick Period Row
+    c_p, c_d = st.columns([2, 1])
+    with c_p:
+         period_preset = st.radio(
+            "⏱️ Select Chart Period",
             ["1D", "1W", "1M", "1Y", "5Y", "Custom"],
             index=2, # Default to 1M
             horizontal=True
         )
+    
+    with c_d:
+        with st.expander("📅 Custom Settings"):
+            s_date = st.date_input("Start Date", date.today() - timedelta(days=365))
+            e_date = st.date_input("End Date", date.today())
+            i_choice = st.selectbox("Interval", ["Daily (1d)", "Hourly (1h)", "5-Min (5m)"])
 
-        # Logic for Presets
-        if period_preset != "Custom":
-            end_date = date.today()
-            if period_preset == "1D":
-                start_date = end_date - timedelta(days=2) # 2 days to get enough intraday
-                interval_code = "5m"
-            elif period_preset == "1W":
-                start_date = end_date - timedelta(days=7)
-                interval_code = "1h"
-            elif period_preset == "1M":
-                start_date = end_date - timedelta(days=30)
-                interval_code = "1d"
-            elif period_preset == "1Y":
-                start_date = end_date - timedelta(days=365)
-                interval_code = "1d"
-            elif period_preset == "5Y":
-                start_date = end_date - timedelta(days=365*5)
-                interval_code = "1wk"
-        else:
-            interval_code = "1h" if "Hourly" in interval_choice else ("5m" if "5-Min" in interval_choice else "1d")
+    # Period Logic
+    if period_preset != "Custom":
+        end_date = date.today()
+        if period_preset == "1D": start_date, interval_code = end_date - timedelta(days=2), "5m"
+        elif period_preset == "1W": start_date, interval_code = end_date - timedelta(days=7), "1h"
+        elif period_preset == "1M": start_date, interval_code = end_date - timedelta(days=30), "1d"
+        elif period_preset == "1Y": start_date, interval_code = end_date - timedelta(days=365), "1d"
+        elif period_preset == "5Y": start_date, interval_code = end_date - timedelta(days=365*5), "1wk"
+    else:
+        start_date, end_date = s_date, e_date
+        interval_code = "1h" if "Hourly" in i_choice else ("5m" if "5-Min" in i_choice else "1d")
 
-        # Auto-trigger if redirected
-        auto_click = False
-        if st.session_state.get('trigger_analyze', False):
-             st.session_state['trigger_analyze'] = False # Reset
-             auto_click = True
+    # Generate Button
+    auto_click = False
+    if st.session_state.get('trigger_analyze', False):
+         st.session_state['trigger_analyze'] = False
+         auto_click = True
 
-        if st.button("Generate Projections", type="primary") or auto_click:
-            with st.spinner(f"Fetching {interval_code} data for {ticker_input}..."):
-                analyzer = StockAnalyzer(ticker_input)
-                # Fetch Data & Fundamentals
-                success = analyzer.fetch_data(start=start_date, end=end_date, interval=interval_code)
-                analyzer.fetch_fundamentals()
-                analyzer.get_news()
-                
-                if success and analyzer.data is not None and not analyzer.data.empty:
-                    df = analyzer.data
-                    st.session_state['data'] = df
-                    st.session_state['analyzer'] = analyzer
-                    st.session_state['ticker'] = ticker_input
-                    st.success("Analysis Ready!")
-                else:
-                    st.error("No data found. Check ticker or date range.")
+    if st.button("🚀 Run Analysis & Forecast", type="primary", use_container_width=True) or auto_click:
+        with st.spinner(f"Fetching data for {ticker_input}..."):
+            analyzer = StockAnalyzer(ticker_input)
+            success = analyzer.fetch_data(start=start_date, end=end_date, interval=interval_code)
+            analyzer.fetch_fundamentals()
+            analyzer.get_news()
+            
+            if success and analyzer.data is not None and not analyzer.data.empty:
+                st.session_state['data'] = analyzer.data
+                st.session_state['analyzer'] = analyzer
+                st.session_state['ticker'] = ticker_input
+                st.success("Analysis Complete!")
+            else:
+                st.error("No data found. Try a different range.")
 
 
     # --- Analyzer Main Content ---
