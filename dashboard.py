@@ -7,6 +7,10 @@ import time
 import importlib
 import json
 import os
+import yfinance as yf
+import stock_screener
+from stock_screener import StockScreener
+from stock_analyzer import StockAnalyzer
 
 # --- Page Configuration (MUST be first Streamlit command) ---
 st.set_page_config(page_title="Stock Analysis Pro", layout="wide")
@@ -89,7 +93,73 @@ st.markdown("""
         font-weight: bold !important;
         box-shadow: 0 0 20px rgba(0, 255, 0, 0.2) !important;
     }
+
+    /* Sentiment Bar Styling */
+    .sentiment-bar {
+        width: 100%;
+        padding: 8px 0;
+        text-align: center;
+        font-weight: 800;
+        font-size: 18px;
+        color: white;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        border-radius: 0 0 10px 10px;
+        margin-bottom: 2px;
+        letter-spacing: 1px;
+    }
+    @keyframes pulse-red {
+        0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+        70% { box-shadow: 0 0 0 15px rgba(255, 0, 0, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+    }
+    @keyframes pulse-green {
+        0% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.7); }
+        70% { box-shadow: 0 0 0 15px rgba(0, 255, 0, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(0, 255, 0, 0); }
+    }
+    .blood-bath {
+        animation: pulse-red 2s infinite;
+        background: linear-gradient(90deg, #4A0000, #FF0000, #4A0000) !important;
+    }
+    .rally {
+        animation: pulse-green 2s infinite;
+        background: linear-gradient(90deg, #002B00, #00FF00, #002B00) !important;
+    }
 </style>
+""", unsafe_allow_html=True)
+
+# --- Market Sentiment Logic ---
+@st.cache_data(ttl=300) # Cache for 5 mins
+def get_market_sentiment():
+    """Fetches Nifty 50 to gauge overall mood."""
+    try:
+        nifty = yf.download("^NSEI", period="2d", progress=False)
+        if nifty.empty or len(nifty) < 2: 
+            return "MARKET NEUTRAL ⚖️", 0, "rgba(255,255,255,0.1)", ""
+        
+        last_close = float(nifty['Close'].iloc[-1])
+        prev_close = float(nifty['Close'].iloc[-2])
+        change_pct = ((last_close - prev_close) / prev_close) * 100
+        
+        if change_pct <= -2.0:
+            return "BLOOD BATH 🩸", change_pct, "", "blood-bath"
+        elif change_pct <= -0.5:
+            return "MARKET NOT OK ⚠️", change_pct, "#FF4B4B", ""
+        elif change_pct <= 0.5:
+            return "SIDEWAYS / CHOPPY ⚖️", change_pct, "rgba(255,255,255,0.1)", ""
+        elif change_pct <= 1.5:
+            return "MARKET OK 🟢", change_pct, "#00FF00", ""
+        else:
+            return "BULLISH RALLY 🚀", change_pct, "", "rally"
+    except Exception as e:
+        return "MARKET DATA UNAVAILABLE", 0, "rgba(255,255,255,0.1)", ""
+
+# Add Sentiment Hub (Absolute Top)
+mood, change, color, anim_class = get_market_sentiment()
+st.markdown(f"""
+<div class="sentiment-bar {anim_class}" style="background-color: {color};">
+    <span style="font-size: 14px; opacity: 0.8;">INDIA MARKET MOOD:</span> {mood} ({change:+.2f}%)
+</div>
 """, unsafe_allow_html=True)
 
 # Add Marquee UI
@@ -105,12 +175,6 @@ st.markdown("""
     </div>
 </div>
 """, unsafe_allow_html=True)
-
-# Custom Modules
-import stock_screener
-importlib.reload(stock_screener)
-from stock_screener import StockScreener
-from stock_analyzer import StockAnalyzer
 
 # Paper Trading & Assets
 from paper_trader import PaperTrader
