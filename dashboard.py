@@ -230,11 +230,6 @@ if page == "🔍 Deep Analyzer":
                 else:
                     st.error("No data found. Check ticker or date range.")
 
-        # --- Indicator Toggles ---
-        st.write("### 📊 Chart Options")
-        show_bb = st.checkbox("Bollinger Bands", value=False)
-        show_emas = st.checkbox("EMA Cloud (20/50/200)", value=False)
-        show_macd = st.checkbox("Show MACD Chart", value=True)
 
     # --- Analyzer Main Content ---
     if 'data' in st.session_state:
@@ -255,6 +250,14 @@ if page == "🔍 Deep Analyzer":
                     if 'alerts' not in st.session_state: st.session_state['alerts'] = []
                     st.session_state['alerts'].append({"ticker": ticker, "price": new_a, "active": True})
                     st.toast(f"Alert Active: {ticker} @ ₹{new_a}", icon="🚀")
+        st.divider()
+        
+        # --- Chart Controls (Relocated) ---
+        st.subheader("📊 Chart Customization")
+        cc1, cc2, cc3 = st.columns(3)
+        with cc1: show_bb = st.checkbox("Bollinger Bands", value=False)
+        with cc2: show_emas = st.checkbox("EMA Cloud (20/50/200)", value=False)
+        with cc3: show_macd = st.checkbox("MACD Indicator", value=True)
         st.divider()
         
         # 1. Fundamentals Section (New)
