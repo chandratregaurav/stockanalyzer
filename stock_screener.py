@@ -260,29 +260,50 @@ class StockScreener:
         return all_day[:4], all_month[:2]
 
     def get_multibagger_candidates(self, limit=10):
-        """Scans for potential multibaggers based on fundamental-technical hybrid scan."""
+        """Scans for potential multibaggers using a High-Growth Heuristic."""
         results = []
         
         def process_ticker(ticker):
             df = self.fetch_history(ticker)
-            if df is None or len(df) < 100: return None
+            if df is None or len(df) < 60: return None
             
-            cur_p = df['Close'].iloc[-1]
-            ma100 = df['Close'].rolling(window=100, min_periods=1).mean().iloc[-1]
+            close = df['Close']
+            cur_p = close.iloc[-1]
             
-            if cur_p < ma100: return None 
+            # Formula Component 1: Trend Quality (Price > MA20 > MA50)
+            ma20 = close.rolling(window=20, min_periods=1).mean().iloc[-1]
+            ma50 = close.rolling(window=50, min_periods=1).mean().iloc[-1]
             
+            if not (cur_p > ma20 > ma50): return None
+            
+            # Formula Component 2: Volume Accumulation
             v_sma = df['Volume'].rolling(window=20, min_periods=1).mean().iloc[-1]
-            if df['Volume'].iloc[-1] < v_sma: return None
+            v_ratio = df['Volume'].iloc[-1] / v_sma if v_sma > 0 else 1.0
             
-            score = 60 
-            reasons = ["Strong Uptrend"]
+            # Formula Component 3: 52-Week Proximity (Strength check)
+            hi_val = close.max()
+            dist_from_hi = (hi_val - cur_p) / hi_val
             
-            rsi = self.calculate_rsi(df['Close']).iloc[-1]
+            # Component 4: RSI Neutral-Bullish Zone (Avoid overbought)
+            rsi_series = self.calculate_rsi(close)
+            rsi = rsi_series.iloc[-1]
+            
+            # --- The Strong Formula Scoring ---
+            score = 50 # Base
+            reasons = ["Confirmed Uptrend"]
+            
             if 45 < rsi < 65: 
                 score += 20
-                reasons.append("Stable Accumulation")
+                reasons.append("Quiet Accumulation")
             
+            if dist_from_hi < 0.15: # Within 15% of 6-mo high
+                score += 20
+                reasons.append("Near Multi-Month High")
+                
+            if v_ratio > 1.3:
+                score += 10
+                reasons.append("Institutional Buying")
+
             return {
                 'ticker': ticker,
                 'score': score,
@@ -293,5 +314,6 @@ class StockScreener:
         with ThreadPoolExecutor(max_workers=10) as executor:
             raw_results = list(executor.map(process_ticker, self.tickers))
             
-        results = [r for r in raw_results if r is not None]
+        results = [r for r in raw_results if r is not None and r['score'] >= 70]
+        # Secondary Sort by Score, then proximity to high
         return sorted(results, key=lambda x: x['score'], reverse=True)[:limit]

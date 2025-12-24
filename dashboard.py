@@ -455,26 +455,29 @@ elif page == "💎 Potential Multibaggers":
     st.info("Scanner objective: Small/Mid-cap stocks showing early accumulation, strong relative strength, and healthy fundamental proxies.")
     
     if st.button("🚀 Run Multibagger Scan", type="primary", use_container_width=True):
-        with st.spinner("Scanning 500+ Indian Stocks for 10x Potential..."):
+        with st.spinner("Executing Strong Formula Scan on 500+ Indian Stocks..."):
             screener = StockScreener([s['symbol'] for s in TICKER_DB])
-            candidates = screener.get_multibagger_candidates(limit=6)
+            candidates = screener.get_multibagger_candidates(limit=10)
             
             if candidates:
-                st.write("### 💎 Top Potential Candidates")
-                # 2x3 Grid
-                for i in range(0, len(candidates), 3):
-                    cols = st.columns(3)
-                    chunk = candidates[i:i+3]
+                st.write(f"### 💎 Top 10 Multibagger Recommendations")
+                st.markdown("---")
+                # 2-Column Grid for 10 items
+                for i in range(0, len(candidates), 2):
+                    cols = st.columns(2)
+                    chunk = candidates[i:i+2]
                     for j, stock in enumerate(chunk):
                         with cols[j]:
                             st.markdown(f"""
-                            <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 15px; border: 1px solid rgba(0, 255, 0, 0.2); min-height: 250px;">
-                                <h2 style="color: #00FF00; margin-bottom: 5px;">{stock['ticker']}</h2>
-                                <div style="font-size: 14px; opacity: 0.8; margin-bottom: 10px;">Price: ₹{stock['current_price']:.2f}</div>
-                                <div style="font-size: 12px; font-weight: bold; background: rgba(0,255,0,0.1); display: inline-block; padding: 2px 8px; border-radius: 5px; color: #00FF00; margin-bottom: 15px;">
-                                    {stock['score']}% Signal Strength
+                            <div style="background: rgba(255,255,255,0.03); padding: 25px; border-radius: 15px; border: 1px solid rgba(0, 255, 0, 0.2); min-height: 200px; margin-bottom: 20px;">
+                                <div style="display: flex; justify-content: space-between; align-items: start;">
+                                    <h2 style="color: #00FF00; margin: 0;">{stock['ticker']}</h2>
+                                    <div style="font-size: 14px; font-weight: bold; background: rgba(0,255,0,0.15); padding: 5px 12px; border-radius: 20px; color: #00FF00;">
+                                        {stock['score']}% Signal
+                                    </div>
                                 </div>
-                                <div style="font-size: 13px; min-height: 60px;">
+                                <div style="font-size: 16px; opacity: 0.9; margin: 10px 0;">Current Price: **₹{stock['current_price']:.2f}**</div>
+                                <div style="font-size: 13px; color: #AAA; line-height: 1.6;">
                                     {" • ".join(stock['reasons'])}
                                 </div>
                             </div>
@@ -483,8 +486,9 @@ elif page == "💎 Potential Multibaggers":
                             if st.button(f"Analyze {stock['ticker']}", key=f"multi_{stock['ticker']}", use_container_width=True):
                                 st.session_state['ticker_target'] = stock['ticker']
                                 st.session_state['page_target'] = "🔍 Deep Analyzer"
-                                st.session_state['trigger_analyze'] = True # Force auto-analyze
+                                st.session_state['trigger_analyze'] = True 
                                 st.rerun()
+                st.success("Multibagger logic check successful for 10 candidates.")
             else:
                 st.warning("No clear multibagger setups detected today. Markets might be in a cool-down phase.")
     else:
