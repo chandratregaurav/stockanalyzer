@@ -17,6 +17,20 @@ st.markdown("""
     input {
         text-transform: uppercase !important;
     }
+    /* Metric Card Styling */
+    div[data-testid="stMetric"] {
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 15px 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        transition: transform 0.2s;
+    }
+    div[data-testid="stMetric"]:hover {
+        transform: translateY(-2px);
+        background-color: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -189,29 +203,52 @@ if page == "🔍 Deep Analyzer":
             else:
                 ticker_input = "RELIANCE.NS" # True fallback
         
-        # Date Selection
-        c1, c2 = st.columns(2)
-        with c1:
-            start_date = st.date_input("Start Date", date.today() - timedelta(days=365))
-        with c2:
-             end_date = st.date_input("End Date", date.today())
-             
-        # Interval Selection (New)
-        interval_choice = st.selectbox("Data Interval", ["Daily (1d)", "Hourly (1h)"])
-        interval_code = "1h" if "Hourly" in interval_choice else "1d"
-        
-        # Smart Logic: Warn/Switch if range is short
-        days_diff = (end_date - start_date).days
-        if days_diff < 7 and interval_code == "1d":
-            st.warning("⚠️ Range < 7 days. Switching to Hourly data for better charts.")
-            interval_code = "1h"
-        
+        # Date Selection (Manual)
+        st.write("---")
+        with st.expander("📅 Custom Date Range", expanded=False):
+            c1, c2 = st.columns(2)
+            with c1:
+                start_date = st.date_input("Start Date", date.today() - timedelta(days=365))
+            with c2:
+                 end_date = st.date_input("End Date", date.today())
+            
+            interval_choice = st.selectbox("Data Interval", ["Daily (1d)", "Hourly (1h)", "5-Min (5m)"])
+
+        # --- Quick Period Presets (New) ---
+        st.write("### ⏱️ Quick Period")
+        period_preset = st.radio(
+            "Select View",
+            ["1D", "1W", "1M", "1Y", "5Y", "Custom"],
+            index=2, # Default to 1M
+            horizontal=True
+        )
+
+        # Logic for Presets
+        if period_preset != "Custom":
+            end_date = date.today()
+            if period_preset == "1D":
+                start_date = end_date - timedelta(days=2) # 2 days to get enough intraday
+                interval_code = "5m"
+            elif period_preset == "1W":
+                start_date = end_date - timedelta(days=7)
+                interval_code = "1h"
+            elif period_preset == "1M":
+                start_date = end_date - timedelta(days=30)
+                interval_code = "1d"
+            elif period_preset == "1Y":
+                start_date = end_date - timedelta(days=365)
+                interval_code = "1d"
+            elif period_preset == "5Y":
+                start_date = end_date - timedelta(days=365*5)
+                interval_code = "1wk"
+        else:
+            interval_code = "1h" if "Hourly" in interval_choice else ("5m" if "5-Min" in interval_choice else "1d")
+
         # Auto-trigger if redirected
+        auto_click = False
         if st.session_state.get('trigger_analyze', False):
              st.session_state['trigger_analyze'] = False # Reset
              auto_click = True
-        else:
-             auto_click = False
 
         if st.button("Generate Projections", type="primary") or auto_click:
             with st.spinner(f"Fetching {interval_code} data for {ticker_input}..."):
@@ -278,27 +315,36 @@ if page == "🔍 Deep Analyzer":
                 
                 st.divider()
 
-        # 2. Candlestick Chart (Interactive)
-        st.subheader("Interactive Price Chart")
-        fig = go.Figure(data=[go.Candlestick(x=df.index,
+        from plotly.subplots import make_subplots
+        
+        # Create Subplots: Price (row 1) and Volume (row 2)
+        fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
+                           vertical_spacing=0.03, row_heights=[0.7, 0.3])
+
+        # 1. Candlestick
+        fig.add_trace(go.Candlestick(x=df.index,
                         open=df['Open'],
                         high=df['High'],
                         low=df['Low'],
                         close=df['Close'],
-                        name="Price")])
+                        name="Price"), row=1, col=1)
         
+        # 2. Volume
+        colors = ['red' if df['Open'][i] > df['Close'][i] else 'green' for i in range(len(df))]
+        fig.add_trace(go.Bar(x=df.index, y=df['Volume'], name="Volume", marker_color=colors, opacity=0.5), row=2, col=1)
+
         # Add Bollinger Bands if requested
         if show_bb and 'Upper_Band' in df.columns:
-            fig.add_trace(go.Scatter(x=df.index, y=df['Upper_Band'], name='BB Upper', line=dict(color='rgba(173, 216, 230, 0.4)', width=1)))
-            fig.add_trace(go.Scatter(x=df.index, y=df['Lower_Band'], name='BB Lower', line=dict(color='rgba(173, 216, 230, 0.4)', width=1), fill='tonexty'))
+            fig.add_trace(go.Scatter(x=df.index, y=df['Upper_Band'], name='BB Upper', line=dict(color='rgba(173, 216, 230, 0.4)', width=1)), row=1, col=1)
+            fig.add_trace(go.Scatter(x=df.index, y=df['Lower_Band'], name='BB Lower', line=dict(color='rgba(173, 216, 230, 0.4)', width=1), fill='tonexty'), row=1, col=1)
             
         # Add EMAs if requested
         if show_emas:
-            if 'EMA20' in df.columns: fig.add_trace(go.Scatter(x=df.index, y=df['EMA20'], name='EMA 20', line=dict(color='yellow', width=1)))
-            if 'EMA50' in df.columns: fig.add_trace(go.Scatter(x=df.index, y=df['EMA50'], name='EMA 50', line=dict(color='orange', width=1)))
-            if 'EMA200' in df.columns: fig.add_trace(go.Scatter(x=df.index, y=df['EMA200'], name='EMA 200', line=dict(color='red', width=1.5)))
+            if 'EMA20' in df.columns: fig.add_trace(go.Scatter(x=df.index, y=df['EMA20'], name='EMA 20', line=dict(color='yellow', width=1)), row=1, col=1)
+            if 'EMA50' in df.columns: fig.add_trace(go.Scatter(x=df.index, y=df['EMA50'], name='EMA 50', line=dict(color='orange', width=1)), row=1, col=1)
+            if 'EMA200' in df.columns: fig.add_trace(go.Scatter(x=df.index, y=df['EMA200'], name='EMA 200', line=dict(color='red', width=1.5)), row=1, col=1)
 
-        fig.update_layout(height=500, margin=dict(l=0, r=0, t=30, b=0))
+        fig.update_layout(height=600, margin=dict(l=0, r=0, t=30, b=0), xaxis_rangeslider_visible=False)
         st.plotly_chart(fig, use_container_width=True)
 
         # 3. MACD Chart (New Sub-chart)
