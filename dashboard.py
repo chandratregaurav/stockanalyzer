@@ -388,6 +388,15 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
+    st.divider()
+    
+    # Legal Disclaimer
+    st.markdown("""
+    <div style="background: rgba(255, 75, 75, 0.05); padding: 12px; border-radius: 8px; border: 1px solid rgba(255, 75, 75, 0.2); font-size: 11px; color: #FF4B4B; line-height: 1.4; text-align: justify;">
+        <strong>⚠️ DISCLAIMER:</strong> This application is for <strong>educational and trial purposes only</strong>. It is NOT financial advice. Stock market investing involves significant risk. Do not make real business or investment decisions based solely on this automated research. Always consult a SEBI-registered advisor before trading.
+    </div>
+    """, unsafe_allow_html=True)
+
 page = st.session_state['current_page']
 
 # Cleanup target
