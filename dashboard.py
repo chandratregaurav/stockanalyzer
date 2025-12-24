@@ -229,33 +229,36 @@ elif page == "🚀 Trending Picks (Top 5)":
         
         with st.spinner("Analyzing price action, volume, and momentum..."):
             top_picks = screener.screen_market()
+            st.session_state['market_picks_global'] = top_picks
             my_bar.progress(100, text="Scan Complete!")
             
-        if top_picks:
-            st.success(f"Found {len(top_picks)} potential winners!")
-            
-            for i, pick in enumerate(top_picks):
-                with st.container():
-                    col1, col2, col3 = st.columns([1, 2, 1])
+    # Persistent Results Display
+    top_picks = st.session_state.get('market_picks_global', [])
+    if top_picks:
+        st.success(f"Found {len(top_picks)} potential winners!")
+        
+        for i, pick in enumerate(top_picks):
+            with st.container():
+                col1, col2, col3 = st.columns([1, 2, 1])
+                
+                with col1:
+                    st.subheader(f"#{i+1} {pick['ticker']}")
+                    st.caption(f"Price: {pick['price']:.2f}")
                     
-                    with col1:
-                        st.subheader(f"#{i+1} {pick['ticker']}")
-                        st.caption(f"Price: {pick['price']:.2f}")
-                        
-                    with col2:
-                        st.metric("Recommendation Score", f"{pick['score']}/100", f"{pick['change_pct']:.2f}% Today")
-                        st.markdown(f"**Why:** {pick['reasons']}")
-                        
-                    with col3:
-                         if st.button(f"Analyze {pick['ticker']}", key=f"btn_trend_{i}"):
-                             st.session_state['nav_sidebar'] = "🔍 Deep Analyzer"
-                             st.session_state['auto_search_val'] = pick['ticker']
-                             st.session_state['trigger_analyze'] = True
-                             st.rerun()
+                with col2:
+                    st.metric("Recommendation Score", f"{pick['score']}/100", f"{pick['change_pct']:.2f}% Today")
+                    st.markdown(f"**Why:** {pick['reasons']}")
                     
-                    st.divider()
-        else:
-            st.warning("No stocks met the strict criteria today. Market might be choppy.")
+                with col3:
+                     if st.button(f"Analyze {pick['ticker']}", key=f"btn_trend_global_{i}"):
+                         st.session_state['nav_sidebar'] = "🔍 Deep Analyzer"
+                         st.session_state['auto_search_val'] = pick['ticker']
+                         st.session_state['trigger_analyze'] = True
+                         st.rerun()
+                
+                st.divider()
+    elif 'market_picks_global' in st.session_state:
+        st.warning("No stocks met the strict criteria today. Market might be choppy.")
 
 elif page == "⚡ Intraday Surge (1-2 Hr)":
     st.header("⚡ Intraday Scalper & Paper Bot")
@@ -456,17 +459,26 @@ elif page == "⚡ Intraday Surge (1-2 Hr)":
             with st.spinner("Scanning top Indian stocks..."):
                 screener = StockScreener(POPULAR_STOCKS)
                 market_picks = screener.screen_market()
+                st.session_state['market_picks_intraday'] = market_picks
                 
-                if market_picks:
-                    for pick in market_picks:
-                        with st.container():
-                            c1, c2, c3 = st.columns([1, 2, 1])
-                            with c1:
-                                st.subheader(pick['ticker'])
-                                st.caption(f"₹{pick['price']:.2f}")
-                            with c2:
-                                st.metric("RSI", f"{pick['rsi']:.1f}", f"{pick['change_pct']:.2f}%")
-                                st.write(f"**Why:** {pick['reasons']}")
-                            st.divider()
-                else:
-                    st.warning("No strong trending setups found.")
+        # Persistent Display for Tab 3
+        market_picks = st.session_state.get('market_picks_intraday', [])
+        if market_picks:
+            for i, pick in enumerate(market_picks):
+                with st.container():
+                    c1, c2, c3 = st.columns([1, 2, 1])
+                    with c1:
+                        st.subheader(pick['ticker'])
+                        st.caption(f"₹{pick['price']:.2f}")
+                    with c2:
+                        st.metric("RSI", f"{pick['rsi']:.1f}", f"{pick['change_pct']:.2f}%")
+                        st.write(f"**Why:** {pick['reasons']}")
+                    with c3:
+                        if st.button(f"Analyze {pick['ticker']}", key=f"btn_trend_intra_{i}"):
+                             st.session_state['nav_sidebar'] = "🔍 Deep Analyzer"
+                             st.session_state['auto_search_val'] = pick['ticker']
+                             st.session_state['trigger_analyze'] = True
+                             st.rerun()
+                    st.divider()
+        elif 'market_picks_intraday' in st.session_state:
+            st.warning("No strong trending setups found.")
