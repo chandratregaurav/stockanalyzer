@@ -506,8 +506,15 @@ elif page == "🔍 Deep Analyzer":
                         name="Price"), row=1, col=1)
         
         # 2. Volume
-        colors = ['red' if df['Open'][i] > df['Close'][i] else 'green' for i in range(len(df))]
-        fig.add_trace(go.Bar(x=df.index, y=df['Volume'], name="Volume", marker_color=colors, opacity=0.5), row=2, col=1)
+        # Fix: Use iloc for robust integer indexing
+        vol_colors = ['red' if df['Open'].iloc[i] > df['Close'].iloc[i] else 'green' for i in range(len(df))]
+        fig.add_trace(go.Bar(x=df.index, y=df['Volume'], name="Volume", marker_color=vol_colors, opacity=0.5), row=2, col=1)
+
+        # Ensure indicators exist (Recalculate if missing)
+        if (show_bb or show_emas or show_macd) and 'MA20' not in df.columns:
+             analyzer.calculate_indicators()
+             df = analyzer.data
+             st.session_state['data'] = df
 
         # Add Bollinger Bands if requested
         if show_bb and 'Upper_Band' in df.columns:

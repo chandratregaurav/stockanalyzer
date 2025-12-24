@@ -50,13 +50,13 @@ class StockAnalyzer:
 
     def calculate_indicators(self):
         """Calculates advanced technical indicators (MACD, Bollinger Bands)."""
-        if self.data is None or len(self.data) < 26:
+        if self.data is None or len(self.data) < 5:
             return
 
         df = self.data
-        # 1. Bollinger Bands (20-day, 2 Std Dev)
-        df['MA20'] = df['Close'].rolling(window=20).mean()
-        df['STD20'] = df['Close'].rolling(window=20).std()
+        # 1. Bollinger Bands (20-day, but adaptive)
+        df['MA20'] = df['Close'].rolling(window=20, min_periods=1).mean()
+        df['STD20'] = df['Close'].rolling(window=20, min_periods=1).std()
         df['Upper_Band'] = df['MA20'] + (df['STD20'] * 2)
         df['Lower_Band'] = df['MA20'] - (df['STD20'] * 2)
 
