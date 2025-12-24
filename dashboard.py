@@ -31,7 +31,46 @@ st.markdown("""
         background-color: rgba(255, 255, 255, 0.08);
         border-color: rgba(255, 255, 255, 0.2);
     }
+    /* Marquee Styling */
+    .marquee {
+        width: 100%;
+        overflow: hidden;
+        white-space: nowrap;
+        background: rgba(0,0,0,0.3);
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        position: relative;
+    }
+    .marquee-content {
+        display: inline-block;
+        animation: marquee 30s linear infinite;
+        padding-left: 100%;
+    }
+    @keyframes marquee {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(-100%, 0); }
+    }
+    .marquee-item {
+        display: inline-block;
+        padding-right: 50px;
+        font-size: 16px;
+        font-weight: bold;
+    }
 </style>
+""", unsafe_allow_html=True)
+
+# Add Marquee UI
+st.markdown("""
+<div class="marquee">
+    <div class="marquee-content">
+        <span class="marquee-item" style="color:#00FF00;">🟢 NIFTY 50: 24,120 (+0.8%)</span>
+        <span class="marquee-item" style="color:#00FF00;">🟢 SENSEX: 79,230 (+0.75%)</span>
+        <span class="marquee-item" style="color:#FF4B4B;">🔴 BANK NIFTY: 51,450 (-0.2%)</span>
+        <span class="marquee-item" style="color:#00FF00;">🟢 RELIANCE: 2,980 (+1.2%)</span>
+        <span class="marquee-item" style="color:#00FF00;">🟢 TCS: 3,920 (+0.95%)</span>
+        <span class="marquee-item" style="color:#FF4B4B;">🔴 INFY: 1,840 (-0.4%)</span>
+    </div>
+</div>
 """, unsafe_allow_html=True)
 
 # Custom Modules
@@ -116,29 +155,53 @@ with st.sidebar:
     
     st.divider()
 # --- Sidebar Navigation Logic (Robust) ---
-nav_options = ["🏠 Home / Market Hub", "🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)", "📊 Portfolio & Analytics"]
+nav_options = ["🔍 Deep Analyzer", "🚀 Trending Picks (Top 5)", "⚡ Intraday Surge (1-2 Hr)", "📊 Portfolio & Analytics"]
 
 # Key-Rotation Pattern: Bypasses Streamlit's internal widget state
 if 'nav_key' not in st.session_state:
     st.session_state['nav_key'] = 0
 
 if 'page_target' in st.session_state:
-    # Programmatic navigation requested!
-    st.session_state['nav_key'] += 1 # Change key to force widget refresh
-    try:
-        nav_index = nav_options.index(st.session_state['page_target'])
-    except:
-        nav_index = 0
+    # Programmatic navigation requested! (including Home)
+    st.session_state['nav_key'] += 1 
+    if st.session_state['page_target'] == "Home":
+        st.session_state['current_page'] = "Home"
+    else:
+        try:
+            nav_index = nav_options.index(st.session_state['page_target'])
+            st.session_state['current_page'] = st.session_state['page_target']
+        except:
+            st.session_state['current_page'] = "Home"
 else:
-    nav_index = 0
+    if 'current_page' not in st.session_state:
+        st.session_state['current_page'] = "Home"
 
-page = st.sidebar.radio("Navigation", nav_options, index=nav_index, key=f"nav_radio_{st.session_state['nav_key']}")
+with st.sidebar:
+    if st.button("🏠 Home / Market Hub", use_container_width=True):
+        st.session_state['current_page'] = "Home"
+        st.rerun()
+    
+    # Logic to sync radio with current_page if it's in nav_options
+    try:
+        r_idx = nav_options.index(st.session_state['current_page'])
+    except:
+        r_idx = 0 # Default to Deep Analyzer if Home is active (but we won't show radio highlight if current_page == Home)
 
-# Cleanup target after it influenced the widget
+    # Use a dummy key if Home is current to avoid radio conflicting
+    page_radio = st.radio("Navigation", nav_options, index=r_idx, key=f"nav_radio_{st.session_state['nav_key']}")
+    
+    # If radio changes and it's NOT just the sync above, update current_page
+    if page_radio != st.session_state.get('current_page'):
+        if st.session_state['current_page'] != "Home" or page_radio != nav_options[0]: # Rough logic to let radio take over
+             st.session_state['current_page'] = page_radio
+
+page = st.session_state['current_page']
+
+# Cleanup target
 if 'page_target' in st.session_state:
     del st.session_state['page_target']
 
-if page == "🏠 Home / Market Hub":
+if page == "Home":
     st.header("🏠 Market Intelligence Hub")
     
     # 1. Market Status Bar
@@ -149,43 +212,65 @@ if page == "🏠 Home / Market Hub":
     st.subheader("🌟 Market Leaders")
     
     with st.spinner("Scanning for top performers..."):
-        # We scan POPULAR_STOCKS for speed
         screener = StockScreener(POPULAR_STOCKS)
-        day_star, month_star = screener.get_market_stars()
+        day_stars, month_stars = screener.get_market_stars()
         
-    c1, c2 = st.columns(2)
-    
-    if day_star:
-        with c1:
+    # --- Line 1: Stars of the Month (Fixed 2) ---
+    st.subheader("🏆 Monthly Leaderboard (Top 2)")
+    mc1, mc2 = st.columns(2)
+    for i, star in enumerate(month_stars[:2]):
+        col = mc1 if i == 0 else mc2
+        with col:
             st.markdown(f"""
-            <div style="background-color: rgba(0, 255, 0, 0.05); border: 2px solid rgba(0, 255, 0, 0.3); padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-                <h3 style="margin:0; opacity: 0.8;">🔥 Star of the Day</h3>
-                <h1 style="color: #00FF00; margin: 10px 0; font-size: 42px;">{day_star['ticker']}</h1>
-                <p style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">{day_star['change']:+.2f}%</p>
-                <p style="opacity: 0.7;">Today's breakout leader!</p>
+            <div style="background-color: rgba(255, 215, 0, 0.05); border: 2px solid rgba(255, 215, 0, 0.3); padding: 20px; border-radius: 12px; text-align: center;">
+                <h4 style="margin:0; opacity: 0.8;">Star of the Month</h4>
+                <h2 style="color: #FFD700; margin: 10px 0;">{star['ticker']}</h2>
+                <p style="font-size: 20px; font-weight: bold; margin:0;">{star['change']:+.2f}%</p>
             </div>
             """, unsafe_allow_html=True)
-            st.write("") # Spacer
-            if st.button(f"🔍 Deep Analyze {day_star['ticker']}", key="home_day_btn", use_container_width=True):
+            if st.button(f"Analyze {star['ticker']} (Month)", key=f"month_btn_{i}", use_container_width=True):
                  st.session_state['page_target'] = "🔍 Deep Analyzer"
-                 st.session_state['ticker_target'] = day_star['ticker']
+                 st.session_state['ticker_target'] = star['ticker']
                  st.session_state['trigger_analyze'] = True
                  st.rerun()
 
-    if month_star:
-        with c2:
+    st.write("") # Spacer
+    
+    # --- Line 2 & 3: Stars of the Day (Top 4) ---
+    st.subheader("🔥 Daily Breakouts (Top 4)")
+    # Row 1 of Day Stars
+    dc1, dc2 = st.columns(2)
+    for i, star in enumerate(day_stars[:2]):
+        col = dc1 if i == 0 else dc2
+        with col:
             st.markdown(f"""
-            <div style="background-color: rgba(255, 215, 0, 0.05); border: 2px solid rgba(255, 215, 0, 0.3); padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-                <h3 style="margin:0; opacity: 0.8;">🏆 Star of the Month</h3>
-                <h1 style="color: #FFD700; margin: 10px 0; font-size: 42px;">{month_star['ticker']}</h1>
-                <p style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">{month_star['change']:+.2f}%</p>
-                <p style="opacity: 0.7;">Consistent monthly strength!</p>
+            <div style="background-color: rgba(0, 255, 0, 0.05); border: 2px solid rgba(0, 255, 0, 0.3); padding: 20px; border-radius: 12px; text-align: center;">
+                <h4 style="margin:0; opacity: 0.8;">Star of the Day</h4>
+                <h2 style="color: #00FF00; margin: 10px 0;">{star['ticker']}</h2>
+                <p style="font-size: 20px; font-weight: bold; margin:0;">{star['change']:+.2f}%</p>
             </div>
             """, unsafe_allow_html=True)
-            st.write("") # Spacer
-            if st.button(f"🔍 Deep Analyze {month_star['ticker']}", key="home_month_btn", use_container_width=True):
+            if st.button(f"Analyze {star['ticker']} (Day)", key=f"day_btn_{i}", use_container_width=True):
                  st.session_state['page_target'] = "🔍 Deep Analyzer"
-                 st.session_state['ticker_target'] = month_star['ticker']
+                 st.session_state['ticker_target'] = star['ticker']
+                 st.session_state['trigger_analyze'] = True
+                 st.rerun()
+
+    # Row 2 of Day Stars
+    dc3, dc4 = st.columns(2)
+    for i, star in enumerate(day_stars[2:4]):
+        col = dc3 if i == 0 else dc4
+        with col:
+            st.markdown(f"""
+            <div style="background-color: rgba(0, 255, 0, 0.05); border: 2px solid rgba(0, 255, 0, 0.3); padding: 20px; border-radius: 12px; text-align: center;">
+                <h4 style="margin:0; opacity: 0.8;">Star of the Day</h4>
+                <h2 style="color: #00FF00; margin: 10px 0;">{star['ticker']}</h2>
+                <p style="font-size: 20px; font-weight: bold; margin:0;">{star['change']:+.2f}%</p>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button(f"Analyze {star['ticker']} (Day)", key=f"day_btn_{i+2}", use_container_width=True):
+                 st.session_state['page_target'] = "🔍 Deep Analyzer"
+                 st.session_state['ticker_target'] = star['ticker']
                  st.session_state['trigger_analyze'] = True
                  st.rerun()
 
