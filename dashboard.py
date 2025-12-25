@@ -874,59 +874,82 @@ elif page == "🔍 Deep Analyzer":
             macd_fig.update_layout(height=250, title="MACD (12, 26, 9)", margin=dict(l=0, r=0, t=30, b=0))
             st.plotly_chart(macd_fig, use_container_width=True)
         
-        # 2. Projections
-        st.subheader("🔮 Blended Momentum Projections (Multi-Horizon)")
-        st.markdown("""
-        **Methodology:** 
-        *   **Short-Term (10-30 Days):** Follows current 30-Day Momentum.
-        *   **Long-Term (60-90 Days):** Anchors back to the Yearly Trend.
-        *   **Curved Path:** Uses a weighted blend for a realistic flight path.
-        """)
+        # 2. Projections (Updated for AI Models)
+        st.subheader("🔮 AI Price Projections")
         
-        projections = analyzer.analyze_and_project()
+        # Determine Prediction Horizon based on Data Quantity
+        data_points = len(df)
+        if data_points < 30: # ~1 Month
+            horizon = 10
+            st.info(f"📊 Short-term data detected ({data_points} candles). Generating 10-day forecast.")
+        elif data_points < 400: # ~1 Year
+            horizon = 60
+            st.info(f"📊 Medium-term data detected. Generating up to 60-day forecast.")
+        else: # > 1.5 Years
+            horizon = 120
+            st.info(f"📊 Long-term data detected. Generating extended 120-day forecast.")
+
+        with st.spinner(f"Running Random Forest Simulation for {horizon} days..."):
+            forecast_data = analyzer.generate_forecast(days=horizon)
         
-        # Display Metrics
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Current Price", f"{projections['current_price']:.2f}")
-        
-        p10 = projections['forecasts'][10]
-        c2.metric("10-Day Target", f"{p10['price']:.2f}", f"{p10['change']:.2f}%")
-        
-        p30 = projections['forecasts'][30]
-        c3.metric("30-Day Target", f"{p30['price']:.2f}", f"{p30['change']:.2f}%")
-        
-        p90 = projections['forecasts'][90]
-        c4.metric("90-Day Target", f"{p90['price']:.2f}", f"{p90['change']:.2f}%")
-        
-        # Charting the Projection
-        projected_dates = [datetime.today() + timedelta(days=i) for i in [10, 30, 60, 90]]
-        # Wait, the projections['forecasts'] is keyed by integer days.
-        
-        proj_fig = go.Figure()
-        
-        # Historical
-        proj_fig.add_trace(go.Scatter(x=df.index[-60:], y=df['Close'][-60:], name='History (60d)', line=dict(color='gray')))
-        
-        # Segments
-        colors = ['green', 'blue', 'orange', 'red']
-        prev_date = df.index[-1]
-        prev_price = projections['current_price']
-        
-        for i, days in enumerate([10, 30, 60, 90]):
-            tgt_date = datetime.today() + timedelta(days=days)
-            tgt_price = projections['forecasts'][days]['price']
+        if forecast_data:
+            # Badge for Strategy
+            st.markdown(f"""
+            <div style="background: rgba(0, 255, 0, 0.1); border: 1px solid rgba(0, 255, 0, 0.3); color: #00FF00; padding: 5px 10px; border-radius: 5px; display: inline-block; font-size: 12px; margin-bottom: 10px;">
+                🤖 Strategy: {forecast_data['model_name']}
+            </div>
+            """, unsafe_allow_html=True)
             
+            # Display Metrics
+            # We dynamically display columns based on what's available
+            targets = forecast_data['targets']
+            cols = st.columns(len(targets) + 1)
+            
+            cols[0].metric("Current", f"{forecast_data['last_close']:.2f}")
+            
+            idx = 1
+            sorted_days = sorted(targets.keys())
+            for d in sorted_days:
+                if d <= horizon:
+                    t = targets[d]
+                    color = "normal"
+                    if t['change'] > 0: color = "normal" 
+                    cols[idx].metric(f"{d}-Day Target", f"{t['price']:.2f}", f"{t['change']:.2f}%")
+                    idx += 1
+            
+            # Charting the Projection
+            proj_df = pd.DataFrame(forecast_data['projections'])
+            
+            proj_fig = go.Figure()
+            
+            # Historical (Last 90 pts)
             proj_fig.add_trace(go.Scatter(
-                x=[prev_date, tgt_date], 
-                y=[prev_price, tgt_price],
-                mode='lines+markers',
-                line=dict(width=3, color=colors[i]),
-                name=f'{days}d Horizon'
+                x=df.index[-90:], 
+                y=df['Close'][-90:], 
+                name='Historical', 
+                line=dict(color='rgba(255, 255, 255, 0.5)', width=2)
             ))
-            prev_date = tgt_date
-            prev_price = tgt_price
             
-        st.plotly_chart(proj_fig, use_container_width=True)
+            # Projection Line
+            proj_fig.add_trace(go.Scatter(
+                x=proj_df['Date'], 
+                y=proj_df['Price'], 
+                name='AI Forecast', 
+                line=dict(color='#00FF00', width=3, dash='dash') # Dashed line for future
+            ))
+            
+            # Fill Area (Confidence / Volatility visual) - simplified as under-fill
+            proj_fig.update_layout(
+                title=f"{ticker} Future Flight Path",
+                height=400, 
+                margin=dict(l=0, r=0, t=30, b=0),
+                xaxis_title="Date",
+                yaxis_title="Price"
+            )
+            
+            st.plotly_chart(proj_fig, use_container_width=True)
+        else:
+            st.warning("Not enough data to generate a reliable forecast. Please select '1Y' or more.")
 
         # 5. Professional Verdict (Pros & Cons)
         st.subheader("⚖️ Professional Verdict")

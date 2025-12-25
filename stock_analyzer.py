@@ -104,177 +104,119 @@ class StockAnalyzer:
         except:
             return []
 
-    def analyze_and_project(self):
-        """Analyzes data and projects targets."""
-        if self.data is None or self.data.empty:
-            print("No data to analyze. Please fetch data first.")
-            return
+    def generate_forecast(self, days=30):
+        """
+        Generates concrete price predictions using a Random Forest Ensemble model.
+        
+        Args:
+            days (int): Number of days to forecast.
+            
+        Returns:
+            dict: Contains 'projections', 'model_name', 'confidence'.
+        """
+        from sklearn.ensemble import RandomForestRegressor
+        from sklearn.model_selection import train_test_split
+        
+        if self.data is None or len(self.data) < 30:
+            print("Insufficient data for AI forecasting.")
+            return None
 
-        # Prepare data for regression
         df = self.data.copy()
-        df = df.reset_index()
         
-        # Handle MultiIndex columns if necessary
-        if isinstance(df.columns, pd.MultiIndex):
-             df.columns = df.columns.get_level_values(0)
-
-        # Detect Date/Datetime column
-        date_col = None
-        for col in df.columns:
-            # Check for both date and datetime types
-            if pd.api.types.is_datetime64_any_dtype(df[col]):
-                date_col = col
-                break
-        
-        if not date_col and 'Date' in df.columns:
-             date_col = 'Date'
-        elif not date_col and 'Datetime' in df.columns:
-             date_col = 'Datetime'
-             
-        if not date_col:
-            print("Could not find Date/Datetime column.")
-            return
-
-        close_col = 'Close'
-        df = df.dropna(subset=[close_col])
-
-        if len(df) < 5:
-             print("Not enough data points for analysis.")
-             return
-             
-        # Use Timestamp (seconds) for X to handle both dates and times (hours) uniformly
-        df['Timestamp'] = df[date_col].apply(lambda x: x.timestamp())
-        
-        X = df[['Timestamp']].values
-        y = df[close_col].values
-        
-        # --- Trend Calculation ---
-        # 1. Long Term Trend (1 Year)
-        # ---------------------------
-        self.model = LinearRegression()
-        self.model.fit(X, y)
-        trend_long_per_sec = self.model.coef_[0]
-        
-        # 2. Short Term Trend (Last 30 Days)
-        # ----------------------------------
-        # Filter for last 30 days approx
-        cutoff_idx = max(0, len(df) - 30)
-        X_short = X[cutoff_idx:]
-        y_short = y[cutoff_idx:]
-        
-        model_short = LinearRegression()
-        model_short.fit(X_short, y_short)
-        trend_short_per_sec = model_short.coef_[0]
-
-        # Basic stats
-        current_price = y[-1]
-        
-        # Display Trend (Show Long Term by default in metrics, or maybe weighted average)
-        # Let's show Long Term as the "Trend" metric for stability
-        trend_per_second = trend_long_per_sec
-        
-        # Convert trend to meaningful unit for display
-        if self.interval == '1h':
-            display_trend = trend_per_second * 3600  # Per Hour
-            trend_unit = "per hour"
-        else:
-            display_trend = trend_per_second * 86400 # Per Day
-            trend_unit = "per day"
-        
-        print(f"\n--- Analysis for {self.ticker} ---")
-        
-        last_data_date = df[date_col].iloc[-1]
-        start_data_date = df[date_col].iloc[0]
-        
-        # For display, if it's datetime, keep time, if date, keep date
-        if hasattr(last_data_date, 'date'):
-             # It's likely a Timestamp
-             pass 
-        
-        print(f"Data Freshness: {last_data_date}")
-        print(f"Data Range: {start_data_date} to {last_data_date}")
-        print(f"Analysis Date: {date.today()}")
-        
-        # Projections logic
-        print(f"\n--- Projections ({'Next 24 Hours' if self.interval == '1h' else 'Next 90 Days'}) ---")
-        print(f"Formula: Blended Momentum (Short Term -> Long Term)")
-        
-        predictions = []
-        
-        if self.interval == '1h':
-            steps = 24
-            step_delta = timedelta(hours=1)
-            step_seconds = 3600
-        else:
-            steps = 90
-            step_delta = timedelta(days=1)
-            step_seconds = 86400
-
-        # Simulation Loop
-        simulated_price = current_price
-        
-        for i in range(1, steps + 1):
-            next_time = last_data_date + (step_delta * i)
+        # 1. Feature Engineering for AI Model
+        # Create Lag Features (Past prices) to predict future
+        df['Lag_1'] = df['Close'].shift(1)
+        df['Lag_2'] = df['Close'].shift(2)
+        df['Lag_5'] = df['Close'].shift(5)
+        df['MA_10'] = df['Close'].rolling(window=10).mean()
+        df['MA_20'] = df['Close'].rolling(window=20).mean()
+        df['RSI'] = 50 # Default filler if RSI missing
+        if 'RSI' in df.columns:
+            df['RSI'] = df['RSI'].fillna(50)
             
-            # Determine effective slope for this step
-            if self.interval == '1h':
-                # For hourly, just use Short Term trend as it's intraday
-                effective_slope = trend_short_per_sec
-            else:
-                # For Daily: Blend Short Term and Long Term
-                # Days 1-10: 100% Short Term -> 50% Short Term
-                # Days 10-30: 50% -> 0% Short Term (Transition to Long Term)
-                # Days 30+: 100% Long Term
-                if i <= 10:
-                    weight_short = 1.0 - (0.2 * (i / 10)) # 1.0 down to 0.8
-                elif i <= 30:
-                    # Decay from 0.8 to 0.0
-                    progress = (i - 10) / 20
-                    weight_short = 0.8 * (1.0 - progress)
-                else:
-                    weight_short = 0.0
-                
-                effective_slope = (trend_short_per_sec * weight_short) + (trend_long_per_sec * (1.0 - weight_short))
-            
-            
-            # Apply slope for this step
-            simulated_price += (effective_slope * step_seconds)
-            
-            predictions.append({'Date': next_time, 'Projected_Close': simulated_price})
-            
-            # Print logic: Full print for hourly, Milestones for daily
-            if self.interval == '1h':
-                print(f"{next_time}: {simulated_price:.2f}")
-            elif i in [10, 30, 60, 90]:
-                print(f"Day {i} ({next_time.date()}): {simulated_price:.2f}")
-            
-        # Helper for Dashboard (Forecasts by Milestone)
-        forecasts_map = {}
-        for day_point in [10, 30, 60, 90]:
-             # Find closest prediction
-             if day_point <= len(predictions):
-                 pred = predictions[day_point-1] # 0-indexed
-                 p_price = pred['Projected_Close']
-                 p_change = ((p_price - current_price) / current_price) * 100
-                 forecasts_map[day_point] = {'price': p_price, 'change': p_change}
-             else:
-                 # Fallback if range is short (e.g. hourly)
-                 # Just use last available as placeholder
-                 if predictions:
-                     pred = predictions[-1]
-                     p_price = pred['Projected_Close']
-                     p_change = ((p_price - current_price) / current_price) * 100
-                     forecasts_map[day_point] = {'price': p_price, 'change': p_change}
+        df = df.dropna()
+        
+        if df.empty: return None
 
+        # Features & Target
+        # We predict 'Close' based on past patterns
+        feature_cols = ['Lag_1', 'Lag_2', 'Lag_5', 'MA_10', 'MA_20']
+        X = df[feature_cols].values
+        y = df['Close'].values
+        
+        # 2. Train Random Forest Model
+        # High n_estimators for stability, limited depth to prevent overfitting
+        model = RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42)
+        model.fit(X, y)
+        
+        # 3. Recursive Forecasting
+        # We predict T+1, then use that prediction to feed into T+2 input
+        future_predictions = []
+        
+        # Initial inputs from the very last row of data
+        last_row = df.iloc[-1]
+        current_input = last_row[feature_cols].values.reshape(1, -1)
+        
+        # To update rolling averages recursively is hard, so we use a simplified approximation:
+        # We shift lags manually. For MAs, we approximate.
+        
+        current_close = last_row['Close']
+        
+        # We keep track of a small history buffer to recalculate features dynamically
+        # History needed: Max lag is 5, Max MA is 20. So 20 days.
+        history_buffer = list(df['Close'].values[-20:])
+        
+        # Determine step size (Days)
+        last_date = df.index[-1]
+        if isinstance(last_date, (int, float)): # If index is not datetime (rare)
+             last_date = date.today()
+        
+        for i in range(1, days + 1):
+            # Predict next close
+            pred_price = model.predict(current_input)[0]
+            
+            # Constraint: Don't let RF go wild (limit daily moves to 5%)
+            # This 'sanity check' acts as a regularization layer
+            prev_price = history_buffer[-1]
+            if pred_price > prev_price * 1.05: pred_price = prev_price * 1.05
+            if pred_price < prev_price * 0.95: pred_price = prev_price * 0.95
+            
+            future_predictions.append({
+                'Date': (last_date + timedelta(days=i)).strftime('%Y-%m-%d'),
+                'Price': pred_price,
+                'Day': i
+            })
+            
+            # Update history
+            history_buffer.append(pred_price)
+            history_buffer.pop(0) # Keep size 20
+            
+            # Re-construct features for next step
+            # 'Lag_1', 'Lag_2', 'Lag_5', 'MA_10', 'MA_20'
+            new_lag_1 = history_buffer[-1]
+            new_lag_2 = history_buffer[-2]
+            new_lag_5 = history_buffer[-5]
+            new_ma_10 = sum(history_buffer[-10:]) / 10
+            new_ma_20 = sum(history_buffer[-20:]) / 20
+            
+            current_input = np.array([[new_lag_1, new_lag_2, new_lag_5, new_ma_10, new_ma_20]])
+
+        # 4. Generate Key Targets
+        targets = {}
+        target_days = [10, 30, 60, 90, 120]
+        base_price = df['Close'].iloc[-1]
+        
+        for d in target_days:
+            if d <= len(future_predictions):
+                p = future_predictions[d-1]['Price']
+                chg = ((p - base_price) / base_price) * 100
+                targets[d] = {'price': p, 'change': chg}
+        
         return {
-            'historical_data': df[[date_col, close_col]],
-            'projections': predictions,
-            'forecasts': forecasts_map, # Added this key
-            'current_price': current_price,
-            'trend': display_trend,
-            'trend_unit': trend_unit,
-            'last_data_date': str(last_data_date),
-            'start_data_date': str(start_data_date)
+            'model_name': 'RandomForest AI (Recursive)',
+            'projections': future_predictions,
+            'targets': targets,
+            'last_close': base_price
         }
 
     def get_pros_cons(self):
