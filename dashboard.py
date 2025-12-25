@@ -17,16 +17,44 @@ st.set_page_config(page_title="Stock Analysis Pro | Indian Market Forecaster", l
 
 # SEO Meta Tags Integration
 st.markdown("""
-    <head>
-        <title>Stock Analysis Pro | Free Multibagger Finder & Indian Stock Forecaster</title>
-        <meta name="description" content="Discover potential 10x multibagger stocks with our professional AI-driven scanner. Free technical and fundamental analysis for Nifty 50, NSE, and BSE stocks.">
-        <meta name="keywords" content="Multibagger Finder, Indian Stock Analysis, Nifty 50 Forecast, Stock Targets, NSE, BSE, Technical Analysis, CAN SLIM, Minervini">
-        <meta name="author" content="Gaurav Chandratre">
-        <!-- Open Graph / Facebook -->
-        <meta property="og:type" content="website">
-        <meta property="og:title" content="Stock Analysis Pro | Multi-Strategy Multibagger Finder">
-        <meta property="og:description" content="Free professional stock analysis tool for Indian markets. High-growth signals and automated forecasting.">
-    </head>
+<head>
+    <title>Stock Analysis Pro | 10x Multibagger Finder & Nifty Forecaster</title>
+    <meta name="description" content="Free professional AI stock analysis for Indian Markets. Find Multibagger gems using CAN SLIM & Minervini strategies. Real-time Nifty 50 forecasting.">
+    <meta name="keywords" content="Multibagger Stocks India, Nifty 50 Prediction, Stock Screeners, Best Stocks to Buy, NSE BSE Analysis, Gaurav Chandratre">
+    <meta name="author" content="Gaurav Chandratre">
+    
+    <!-- Open Graph / Meta -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Stock Analysis Pro | High-Growth Stock Radar">
+    <meta property="og:description" content="Institutional-grade stock screening and AI forecasting for free.">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1611974717482-48dfc0543fb4?q=80&w=2070&auto=format&fit=crop">
+    
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Stock Analysis Pro | 10x Multibagger Scanner">
+    <meta name="twitter:description" content="Scan 500+ Indian stocks for multibagger potential instantly.">
+    <meta name="twitter:image" content="https://images.unsplash.com/photo-1611974717482-48dfc0543fb4?q=80&w=2070&auto=format&fit=crop">
+    
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Stock Analysis Pro",
+      "operatingSystem": "Web",
+      "applicationCategory": "FinanceApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "INR"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Gaurav Chandratre"
+      }
+    }
+    </script>
+</head>
 """, unsafe_allow_html=True)
 
 # Force Uppercase Display CSS
@@ -294,7 +322,8 @@ nav_options = [
     "🚀 Trending Picks (Top 5)", 
     "⚡ Intraday Surge (1-2 Hr)", 
     "💎 Potential Multibaggers",
-    "📊 Portfolio & Analytics"
+    "📊 Portfolio & Analytics",
+    "🤝 Contact & Collab"
 ]
 
 # Key-Rotation Pattern: Bypasses Streamlit's internal widget state
@@ -396,7 +425,8 @@ if 'page_target' in st.session_state:
     del st.session_state['page_target']
 
 if page == "Home":
-    st.header("🏠 Market Intelligence Hub")
+    render_ad_space()
+    st.title("🏛️ Professional Trading Hub")
     
     # 1. Market Status Bar
     is_open, status_msg = is_market_open()
@@ -542,6 +572,7 @@ elif page == "💎 Potential Multibaggers":
         st.write("Click the button above to start the professional-grade scan.")
 
 elif page == "🔍 Deep Analyzer":
+    render_ad_space()
     # --- Forced Redirection Sync ---
     if 'ticker_target' in st.session_state:
         target = st.session_state['ticker_target']
@@ -1202,7 +1233,45 @@ elif page == "⚡ Intraday Surge (1-2 Hr)":
         elif 'market_picks_intraday' in st.session_state:
             st.warning("No strong trending setups found.")
 
-# --- Sticky Disclaimer Footer ---
+elif page == "🤝 Contact & Collab":
+    render_ad_space()
+    st.title("🤝 Contact & Collaboration")
+    st.markdown("---")
+    
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        st.markdown(f"""
+        <div style="background: rgba(255,255,255,0.03); padding: 30px; border-radius: 20px; border: 1px solid rgba(0, 255, 0, 0.2);">
+            <h2 style="color: #00FF00; margin-top: 0;">👤 Personal Profile</h2>
+            <p style="font-size: 18px;"><strong>Name:</strong> Gaurav Chandratre</p>
+            <p style="font-size: 16px; opacity: 0.8;">Full-Stack Developer & Quantitative Trading Enthusiast.</p>
+            <hr style="opacity: 0.1; margin: 20px 0;">
+            <p>📧 <strong>Email:</strong> <a href="mailto:chandratregaurav+stocks@gmail.com" style="color: #00FF00; text-decoration: none;">chandratregaurav+stocks@gmail.com</a></p>
+            <p>📱 <strong>Phone / WhatsApp:</strong> +91 9503776242</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with col2:
+        st.markdown("""
+        <div style="background: rgba(255,255,255,0.03); padding: 30px; border-radius: 20px; border: 1px solid rgba(0, 255, 0, 0.2);">
+            <h2 style="color: #00FF00; margin-top: 0;">🚀 Business & Ads</h2>
+            <p style="font-size: 16px;">We are currently opening the platform for <strong>Strategic Collaborations</strong> and <strong>Premium Ad Placements</strong>.</p>
+            <ul style="line-height: 1.8; opacity: 0.9;">
+                <li>Sponsored Ticker Placement</li>
+                <li>Exclusive Brokerage Partnerships</li>
+                <li>Product Review & Deep Dives</li>
+                <li>Custom Strategy Development</li>
+            </ul>
+            <div style="background: rgba(0, 255, 0, 0.1); padding: 15px; border-radius: 10px; margin-top: 20px; text-align: center;">
+                <strong>Interested?</strong><br>Reach out via Email or WhatsApp for a customized media kit.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.info("💡 **Note:** This platform is growing rapidly. Partner with us to reach a highly engaged audience of Indian traders and investors.")
+
+# --- Sticky Disclaimer Footer (Bulletproof v3.5.2) ---
 st.markdown("""
     <style>
     .sticky-disclaimer {
@@ -1210,20 +1279,18 @@ st.markdown("""
         bottom: 0;
         left: 0;
         width: 100%;
-        background: rgba(15, 15, 15, 0.95);
+        background: rgba(15, 15, 15, 0.98);
         color: #FF4B4B;
         text-align: center;
-        padding: 10px;
-        font-size: 11px;
-        border-top: 1px solid rgba(255, 75, 75, 0.3);
+        padding: 12px;
+        font-size: 10px;
+        border-top: 1px solid rgba(255, 75, 75, 0.4);
         z-index: 1000;
-        backdrop-filter: blur(5px);
-    }
-    .main-content {
-        margin-bottom: 50px; /* Space for the sticky bar */
+        backdrop-filter: blur(8px);
     }
     </style>
     <div class="sticky-disclaimer">
-        <strong>⚠️ DISCLAIMER:</strong> This application is for <strong>educational purposes only</strong>. It is NOT financial advice. Do not make real investment decisions based on this research. Consult a SEBI-registered advisor before trading.
+        <strong>⚠️ LEGAL DISCLOSURE:</strong> (1) Educational Research Tool only. (2) Developer is NOT a SEBI Registered RA/RIA. (3) 
+        Signals/Targets are AI-generated & NOT buy/sell tips. (4) Past performance != Future results. We are NOT liable for losses. Consult a professional advisor.
     </div>
 """, unsafe_allow_html=True)
