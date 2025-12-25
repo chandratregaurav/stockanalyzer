@@ -285,23 +285,73 @@ def render_ad_space():
     </div>
     """, unsafe_allow_html=True)
 
-# --- Market Hours Check ---
+# --- Market Hours Check with Holiday Detection ---
+def get_nse_holidays_2025():
+    """Returns list of NSE/BSE holidays for 2025."""
+    # NSE/BSE Holiday Calendar 2025
+    holidays = [
+        date(2025, 1, 26),   # Republic Day
+        date(2025, 3, 14),   # Mahashivratri
+        date(2025, 3, 31),   # Id-Ul-Fitr (Ramadan Eid)
+        date(2025, 4, 10),   # Mahavir Jayanti
+        date(2025, 4, 14),   # Dr. Ambedkar Jayanti
+        date(2025, 4, 18),   # Good Friday
+        date(2025, 5, 1),    # Maharashtra Day
+        date(2025, 6, 7),    # Id-Ul-Adha (Bakri Eid)
+        date(2025, 8, 15),   # Independence Day
+        date(2025, 8, 27),   # Ganesh Chaturthi
+        date(2025, 10, 2),   # Mahatma Gandhi Jayanti
+        date(2025, 10, 21),  # Dussehra
+        date(2025, 11, 1),   # Diwali - Laxmi Pujan
+        date(2025, 11, 5),   # Guru Nanak Jayanti
+        date(2025, 12, 25),  # Christmas
+    ]
+    return holidays
+
+def get_next_trading_day(from_date=None):
+    """Calculate the next trading day, skipping weekends and holidays."""
+    if from_date is None:
+        from_date = date.today()
+    
+    holidays = get_nse_holidays_2025()
+    next_day = from_date + timedelta(days=1)
+    
+    # Keep incrementing until we find a trading day
+    while next_day.weekday() >= 5 or next_day in holidays:
+        next_day += timedelta(days=1)
+    
+    return next_day
+
 def is_market_open():
-    """Check if NSE/BSE is open (9:15 AM - 3:30 PM IST, Mon-Fri)."""
+    """Check if NSE/BSE is open (9:15 AM - 3:30 PM IST, Mon-Fri), accounting for holidays."""
     now = datetime.now()
+    today = now.date()
+    holidays = get_nse_holidays_2025()
+    
+    # Check if today is a holiday
+    if today in holidays:
+        next_trading = get_next_trading_day(today)
+        day_name = next_trading.strftime("%A, %b %d")
+        return False, f"🏖️ Markets Closed - Holiday | Next Trading Day: {day_name}"
+    
     # Check weekday (0=Monday, 6=Sunday)
     if now.weekday() >= 5:  # Saturday or Sunday
-        return False, "Market Closed (Weekend)"
+        next_trading = get_next_trading_day(today)
+        day_name = next_trading.strftime("%A, %b %d")
+        return False, f"📅 Markets Closed - Weekend | Next Trading Day: {day_name}"
     
-    market_open = now.replace(hour=9, minute=15, second=0)
-    market_close = now.replace(hour=15, minute=30, second=0)
+    market_open = now.replace(hour=9, minute=15, second=0, microsecond=0)
+    market_close = now.replace(hour=15, minute=30, second=0, microsecond=0)
     
     if now < market_open:
-        return False, f"Market Opens at 9:15 AM (in {(market_open - now).seconds // 60} mins)"
+        mins_to_open = (market_open - now).seconds // 60
+        return False, f"⏰ Market Opens at 9:15 AM (in {mins_to_open} mins)"
     elif now > market_close:
-        return False, "Market Closed for today (After 3:30 PM)"
+        next_trading = get_next_trading_day(today)
+        day_name = next_trading.strftime("%A, %b %d")
+        return False, f"🔔 Market Closed for Today | Next Trading Day: {day_name}"
     else:
-        return True, "Market is LIVE 🟢"
+        return True, "🟢 Market is LIVE"
 
 # --- Initialization ---
 if 'trader' not in st.session_state:
