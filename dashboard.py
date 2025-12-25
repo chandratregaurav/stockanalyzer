@@ -889,8 +889,16 @@ elif page == "🔍 Deep Analyzer":
             horizon = 120
             st.info(f"📊 Long-term data detected. Generating extended 120-day forecast.")
 
-        with st.spinner(f"Running Monte Carlo Simulation (1,000 runs) for {horizon} days..."):
-            forecast_data = analyzer.generate_forecast(days=horizon)
+        # Model Selector
+        model_choice = st.selectbox(
+            "🧠 Select Forecasting Model",
+            ["Monte Carlo (GBM)", "Random Forest AI", "Linear Regression (Trend)"],
+            index=0,
+            help="Choose the algorithm used for future price projection."
+        )
+
+        with st.spinner(f"Running {model_choice} simulation for {horizon} days..."):
+            forecast_data = analyzer.generate_forecast(days=horizon, model_type=model_choice)
         
         if forecast_data:
             # Badge for Strategy

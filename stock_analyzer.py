@@ -104,95 +104,146 @@ class StockAnalyzer:
         except:
             return []
 
-    def generate_forecast(self, days=30):
+    def generate_forecast(self, days=30, model_type='Monte Carlo (GBM)'):
         """
-        Generates financial projections using Monte Carlo simulation (Geometric Brownian Motion).
-        This is the industry standard for modeling stock price paths.
+        Generates concrete price predictions using the selected strategy.
+        
+        Args:
+            days (int): Number of days to forecast.
+            model_type (str): 'Monte Carlo (GBM)', 'Random Forest AI', 'Linear Regression (Trend)'
         """
         import numpy as np
+        from datetime import timedelta, date
         
-        if self.data is None or len(self.data) < 5:
-            print("Insufficient data for Monte Carlo.")
+        if self.data is None or len(self.data) < 30:
+            print("Insufficient data for forecasting.")
             return None
 
         df = self.data.copy()
-        
-        # 1. Calculate Returns & Volatility
-        # Log returns are additive and standard for GBM
-        df['Log_Ret'] = np.log(df['Close'] / df['Close'].shift(1))
-        
-        # Volatility (Sigma): Standard deviation of returns
-        sigma = df['Log_Ret'].std()
-        
-        # Drift (Mu): Average return
-        # To make it "Smart", we don't just take the simple mean of the whole period.
-        # We blend the Long-term Mean with the Short-term Mean (Momentum).
-        mu_long = df['Log_Ret'].mean()
-        
-        # Short-term (last 20 days or 1/4th of data)
-        short_window = min(20, len(df) // 4)
-        if short_window > 2:
-            mu_short = df['Log_Ret'].tail(short_window).mean()
-        else:
-            mu_short = mu_long
-            
-        # Weighted Drift: 60% Short-term (Momentum), 40% Long-term (Mean Reversion anchor)
-        # This prevents "horizontal lines" by respecting recent powerful moves.
-        mu = (0.6 * mu_short) + (0.4 * mu_long)
-        
-        # Annualize for reference (optional debug)
-        # annual_vol = sigma * np.sqrt(252)
-        # annual_ret = mu * 252
-        
-        # 2. Monte Carlo Simulation (Geometric Brownian Motion)
-        # Formula: S_t = S_0 * exp((mu - 0.5*sigma^2)*t + sigma*W_t)
-        
         last_price = df['Close'].iloc[-1]
-        simulation_runs = 1000 # Run 1000 possible futures
-        
-        # Generate random shocks for all runs at once
-        # Shape: (days, simulation_runs)
-        dt = 1 # 1 day time step
-        random_shocks = np.random.normal(0, 1, (days, simulation_runs))
-        
-        # Calculate drift component (constant)
-        drift_comp = (mu - 0.5 * sigma**2) * dt
-        
-        # Calculate diffusion component (random)
-        diffusion_comp = sigma * np.sqrt(dt) * random_shocks
-        
-        # Sum them to get daily log returns for every path
-        daily_log_returns = drift_comp + diffusion_comp
-        
-        # Cumulative sum to get total return curve
-        cumulative_log_returns = np.cumsum(daily_log_returns, axis=0)
-        
-        # Convert to prices
-        # prices[t] = last_price * exp(cumulative_log_returns[t])
-        future_prices = last_price * np.exp(cumulative_log_returns)
-        
-        # 3. Aggregation (The "Prediction")
-        # We take the MEDIAN path as the most probable "Center" forecast.
-        # We can also return 10th and 90th percentile for confidence intervals later.
-        median_path = np.median(future_prices, axis=1)
-        
-        # 4. Construct Output
-        future_predictions = []
         
         # Determine step size (Days)
         last_date = df.index[-1]
-        if isinstance(last_date, (int, float)): # If index is not datetime (rare)
+        if isinstance(last_date, (int, float)):
              last_date = date.today()
              
-        for i in range(days):
-            price = median_path[i]
-            future_predictions.append({
-                'Date': (last_date + timedelta(days=i+1)).strftime('%Y-%m-%d'),
-                'Price': price,
-                'Day': i+1
-            })
+        future_predictions = []
 
-        # 5. Generate Key Targets
+        # --- STRATEGY 1: Monte Carlo (GBM) ---
+        if model_type == 'Monte Carlo (GBM)':
+            # Log returns
+            df['Log_Ret'] = np.log(df['Close'] / df['Close'].shift(1))
+            sigma = df['Log_Ret'].std()
+            
+            # Weighted Drift
+            mu_long = df['Log_Ret'].mean()
+            short_window = min(20, len(df) // 4)
+            if short_window > 2:
+                mu_short = df['Log_Ret'].tail(short_window).mean()
+            else:
+                mu_short = mu_long
+            mu = (0.6 * mu_short) + (0.4 * mu_long)
+            
+            # Simulation
+            simulation_runs = 1000
+            dt = 1
+            random_shocks = np.random.normal(0, 1, (days, simulation_runs))
+            drift_comp = (mu - 0.5 * sigma**2) * dt
+            diffusion_comp = sigma * np.sqrt(dt) * random_shocks
+            
+            daily_log_returns = drift_comp + diffusion_comp
+            cumulative_log_returns = np.cumsum(daily_log_returns, axis=0)
+            future_prices = last_price * np.exp(cumulative_log_returns)
+            
+            # Median Path
+            median_path = np.median(future_prices, axis=1)
+            
+            for i in range(days):
+                future_predictions.append({
+                    'Date': (last_date + timedelta(days=i+1)).strftime('%Y-%m-%d'),
+                    'Price': median_path[i],
+                    'Day': i+1
+                })
+
+        # --- STRATEGY 2: Random Forest AI ---
+        elif model_type == 'Random Forest AI':
+            from sklearn.ensemble import RandomForestRegressor
+            
+            # Features
+            df['Lag_1'] = df['Close'].shift(1)
+            df['Lag_2'] = df['Close'].shift(2)
+            df['Lag_5'] = df['Close'].shift(5)
+            df['MA_10'] = df['Close'].rolling(window=10).mean()
+            df['MA_20'] = df['Close'].rolling(window=20).mean()
+            df = df.dropna()
+            
+            if df.empty: return None
+            
+            X = df[['Lag_1', 'Lag_2', 'Lag_5', 'MA_10', 'MA_20']].values
+            y = df['Close'].values
+            
+            model = RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42)
+            model.fit(X, y)
+            
+            # Recursive Forecast
+            history_buffer = list(df['Close'].values[-20:])
+            # Initial Input
+            current_input = [
+                history_buffer[-1], history_buffer[-2], history_buffer[-5],
+                sum(history_buffer[-10:])/10, sum(history_buffer[-20:])/20
+            ]
+            current_input = np.array([current_input])
+            
+            for i in range(1, days + 1):
+                pred_price = model.predict(current_input)[0]
+                
+                # Dynamic Constraint (Limit volatility to 5% per day to prevent explosion)
+                prev = history_buffer[-1]
+                pred_price = max(prev * 0.95, min(prev * 1.05, pred_price))
+                
+                future_predictions.append({
+                    'Date': (last_date + timedelta(days=i)).strftime('%Y-%m-%d'),
+                    'Price': pred_price,
+                    'Day': i
+                })
+                
+                history_buffer.append(pred_price)
+                history_buffer.pop(0)
+                # Recalculate features
+                new_input = [
+                    history_buffer[-1], history_buffer[-2], history_buffer[-5],
+                    sum(history_buffer[-10:])/10, sum(history_buffer[-20:])/20
+                ]
+                current_input = np.array([new_input])
+
+        # --- STRATEGY 3: Linear Regression (Trend) ---
+        elif model_type == 'Linear Regression (Trend)':
+            from sklearn.linear_model import LinearRegression
+            
+            # Prepare X (timestamps) and y (prices)
+            # Use whole period for trend
+            df['Timestamp'] = df.index.astype(int) / 10**9 # Convert ns to seconds
+            X = df[['Timestamp']].values.reshape(-1, 1)
+            y = df['Close'].values
+            
+            lr = LinearRegression()
+            lr.fit(X, y)
+            
+            # Predict
+            start_ts = last_date.timestamp()
+            seconds_per_day = 86400
+            
+            for i in range(1, days + 1):
+                next_ts = start_ts + (i * seconds_per_day)
+                pred_price = lr.predict([[next_ts]])[0]
+                
+                future_predictions.append({
+                    'Date': (last_date + timedelta(days=i)).strftime('%Y-%m-%d'),
+                    'Price': pred_price,
+                    'Day': i
+                })
+
+        # --- Common Output Construction ---
         targets = {}
         target_days = [10, 30, 60, 90, 120]
         
@@ -203,11 +254,10 @@ class StockAnalyzer:
                 targets[d] = {'price': p, 'change': chg}
         
         return {
-            'model_name': 'Monte Carlo (GBM) Simulation',
+            'model_name': model_type,
             'projections': future_predictions,
             'targets': targets,
-            'last_close': last_price,
-            'volatility': sigma
+            'last_close': last_price
         }
         
         return {
