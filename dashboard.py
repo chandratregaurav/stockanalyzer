@@ -15,9 +15,9 @@ from stock_analyzer import StockAnalyzer
 # --- Page Configuration (MUST be first Streamlit command) ---
 st.set_page_config(page_title="Stock Analysis Pro | Indian Market Forecaster", layout="wide", page_icon="📈")
 
-# SEO Meta Tags Integration
+# SEO Meta Tags Integration (Hidden from UI)
 st.markdown("""
-<head>
+<div style="display:none;">
     <title>Stock Analysis Pro | 10x Multibagger Finder & Nifty Forecaster</title>
     <meta name="description" content="Free professional AI stock analysis for Indian Markets. Find Multibagger gems using CAN SLIM & Minervini strategies. Real-time Nifty 50 forecasting.">
     <meta name="keywords" content="Multibagger Stocks India, Nifty 50 Prediction, Stock Screeners, Best Stocks to Buy, NSE BSE Analysis, Gaurav Chandratre">
@@ -54,7 +54,7 @@ st.markdown("""
       }
     }
     </script>
-</head>
+</div>
 """, unsafe_allow_html=True)
 
 # Force Uppercase Display CSS
