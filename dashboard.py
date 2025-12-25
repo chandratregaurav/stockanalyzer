@@ -257,6 +257,18 @@ try:
 except ImportError:
     ALERT_SOUND_B64 = "" 
 
+# --- Market Utilities ---
+def render_ad_space():
+    """Placeholder for premium advertisements/sponsor banners."""
+    st.markdown("""
+    <div style="background: linear-gradient(90deg, #1e1e1e, #2d2d2d); padding: 20px; border-radius: 12px; border: 1px dashed rgba(0, 255, 0, 0.3); text-align: center; margin-bottom: 25px;">
+        <div style="font-size: 10px; color: #00FF00; opacity: 0.6; text-transform: uppercase; margin-bottom: 5px;">👑 Sponsored Collaboration</div>
+        <div style="font-size: 18px; font-weight: bold; color: #FFF;">Your Brand Name & Promotion Here</div>
+        <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">Reach 10,000+ active traders daily with premium placement. 
+        <a href="mailto:chandratregaurav+stocks@gmail.com" style="color: #00FF00; text-decoration: none;">Contact for Ad Rates →</a></div>
+    </div>
+    """, unsafe_allow_html=True)
+
 # --- Market Hours Check ---
 def is_market_open():
     """Check if NSE/BSE is open (9:15 AM - 3:30 PM IST, Mon-Fri)."""
