@@ -1250,26 +1250,37 @@ elif page == "🤝 Contact & Collab":
     
     st.info("💡 **Note:** This platform is growing rapidly. Partner with us to reach a highly engaged audience of Indian traders and investors.")
 
-# --- Sticky Disclaimer Footer (Bulletproof v3.5.2) ---
+# --- Scrolling Disclaimer Marquee (v3.9) ---
 st.markdown("""
     <style>
-    .sticky-disclaimer {
+    .disclaimer-marquee {
         position: fixed;
         bottom: 0;
         left: 0;
         width: 100%;
         background: rgba(15, 15, 15, 0.98);
         color: #FF4B4B;
-        text-align: center;
-        padding: 12px;
-        font-size: 10px;
+        padding: 8px 0;
+        font-size: 11px;
         border-top: 1px solid rgba(255, 75, 75, 0.4);
         z-index: 1000;
         backdrop-filter: blur(8px);
+        overflow: hidden;
+        white-space: nowrap;
+    }
+    .disclaimer-content {
+        display: inline-block;
+        animation: scroll-disclaimer 45s linear infinite;
+        padding-left: 100%;
+    }
+    @keyframes scroll-disclaimer {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(-100%, 0); }
     }
     </style>
-    <div class="sticky-disclaimer">
-        <strong>⚠️ LEGAL DISCLOSURE:</strong> (1) Educational Research Tool only. (2) Developer is NOT a SEBI Registered RA/RIA. (3) 
-        Signals/Targets are AI-generated & NOT buy/sell tips. (4) Past performance != Future results. We are NOT liable for losses. Consult a professional advisor.
+    <div class="disclaimer-marquee">
+        <div class="disclaimer-content">
+            <strong>⚠️ LEGAL DISCLOSURE:</strong> (1) Educational Research Tool only • (2) Developer is NOT a SEBI Registered RA/RIA • (3) Signals/Targets are AI-generated & NOT buy/sell tips • (4) Past performance ≠ Future results • We are NOT liable for losses • Consult a professional advisor before trading
+        </div>
     </div>
 """, unsafe_allow_html=True)
