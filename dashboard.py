@@ -889,7 +889,7 @@ elif page == "🔍 Deep Analyzer":
             horizon = 120
             st.info(f"📊 Long-term data detected. Generating extended 120-day forecast.")
 
-        with st.spinner(f"Running Random Forest Simulation for {horizon} days..."):
+        with st.spinner(f"Running Monte Carlo Simulation (1,000 runs) for {horizon} days..."):
             forecast_data = analyzer.generate_forecast(days=horizon)
         
         if forecast_data:

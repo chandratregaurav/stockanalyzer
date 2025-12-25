@@ -106,111 +106,109 @@ class StockAnalyzer:
 
     def generate_forecast(self, days=30):
         """
-        Generates concrete price predictions using a Random Forest Ensemble model.
-        
-        Args:
-            days (int): Number of days to forecast.
-            
-        Returns:
-            dict: Contains 'projections', 'model_name', 'confidence'.
+        Generates financial projections using Monte Carlo simulation (Geometric Brownian Motion).
+        This is the industry standard for modeling stock price paths.
         """
-        from sklearn.ensemble import RandomForestRegressor
-        from sklearn.model_selection import train_test_split
+        import numpy as np
         
-        if self.data is None or len(self.data) < 30:
-            print("Insufficient data for AI forecasting.")
+        if self.data is None or len(self.data) < 5:
+            print("Insufficient data for Monte Carlo.")
             return None
 
         df = self.data.copy()
         
-        # 1. Feature Engineering for AI Model
-        # Create Lag Features (Past prices) to predict future
-        df['Lag_1'] = df['Close'].shift(1)
-        df['Lag_2'] = df['Close'].shift(2)
-        df['Lag_5'] = df['Close'].shift(5)
-        df['MA_10'] = df['Close'].rolling(window=10).mean()
-        df['MA_20'] = df['Close'].rolling(window=20).mean()
-        df['RSI'] = 50 # Default filler if RSI missing
-        if 'RSI' in df.columns:
-            df['RSI'] = df['RSI'].fillna(50)
+        # 1. Calculate Returns & Volatility
+        # Log returns are additive and standard for GBM
+        df['Log_Ret'] = np.log(df['Close'] / df['Close'].shift(1))
+        
+        # Volatility (Sigma): Standard deviation of returns
+        sigma = df['Log_Ret'].std()
+        
+        # Drift (Mu): Average return
+        # To make it "Smart", we don't just take the simple mean of the whole period.
+        # We blend the Long-term Mean with the Short-term Mean (Momentum).
+        mu_long = df['Log_Ret'].mean()
+        
+        # Short-term (last 20 days or 1/4th of data)
+        short_window = min(20, len(df) // 4)
+        if short_window > 2:
+            mu_short = df['Log_Ret'].tail(short_window).mean()
+        else:
+            mu_short = mu_long
             
-        df = df.dropna()
+        # Weighted Drift: 60% Short-term (Momentum), 40% Long-term (Mean Reversion anchor)
+        # This prevents "horizontal lines" by respecting recent powerful moves.
+        mu = (0.6 * mu_short) + (0.4 * mu_long)
         
-        if df.empty: return None
-
-        # Features & Target
-        # We predict 'Close' based on past patterns
-        feature_cols = ['Lag_1', 'Lag_2', 'Lag_5', 'MA_10', 'MA_20']
-        X = df[feature_cols].values
-        y = df['Close'].values
+        # Annualize for reference (optional debug)
+        # annual_vol = sigma * np.sqrt(252)
+        # annual_ret = mu * 252
         
-        # 2. Train Random Forest Model
-        # High n_estimators for stability, limited depth to prevent overfitting
-        model = RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42)
-        model.fit(X, y)
+        # 2. Monte Carlo Simulation (Geometric Brownian Motion)
+        # Formula: S_t = S_0 * exp((mu - 0.5*sigma^2)*t + sigma*W_t)
         
-        # 3. Recursive Forecasting
-        # We predict T+1, then use that prediction to feed into T+2 input
+        last_price = df['Close'].iloc[-1]
+        simulation_runs = 1000 # Run 1000 possible futures
+        
+        # Generate random shocks for all runs at once
+        # Shape: (days, simulation_runs)
+        dt = 1 # 1 day time step
+        random_shocks = np.random.normal(0, 1, (days, simulation_runs))
+        
+        # Calculate drift component (constant)
+        drift_comp = (mu - 0.5 * sigma**2) * dt
+        
+        # Calculate diffusion component (random)
+        diffusion_comp = sigma * np.sqrt(dt) * random_shocks
+        
+        # Sum them to get daily log returns for every path
+        daily_log_returns = drift_comp + diffusion_comp
+        
+        # Cumulative sum to get total return curve
+        cumulative_log_returns = np.cumsum(daily_log_returns, axis=0)
+        
+        # Convert to prices
+        # prices[t] = last_price * exp(cumulative_log_returns[t])
+        future_prices = last_price * np.exp(cumulative_log_returns)
+        
+        # 3. Aggregation (The "Prediction")
+        # We take the MEDIAN path as the most probable "Center" forecast.
+        # We can also return 10th and 90th percentile for confidence intervals later.
+        median_path = np.median(future_prices, axis=1)
+        
+        # 4. Construct Output
         future_predictions = []
-        
-        # Initial inputs from the very last row of data
-        last_row = df.iloc[-1]
-        current_input = last_row[feature_cols].values.reshape(1, -1)
-        
-        # To update rolling averages recursively is hard, so we use a simplified approximation:
-        # We shift lags manually. For MAs, we approximate.
-        
-        current_close = last_row['Close']
-        
-        # We keep track of a small history buffer to recalculate features dynamically
-        # History needed: Max lag is 5, Max MA is 20. So 20 days.
-        history_buffer = list(df['Close'].values[-20:])
         
         # Determine step size (Days)
         last_date = df.index[-1]
         if isinstance(last_date, (int, float)): # If index is not datetime (rare)
              last_date = date.today()
-        
-        for i in range(1, days + 1):
-            # Predict next close
-            pred_price = model.predict(current_input)[0]
-            
-            # Constraint: Don't let RF go wild (limit daily moves to 5%)
-            # This 'sanity check' acts as a regularization layer
-            prev_price = history_buffer[-1]
-            if pred_price > prev_price * 1.05: pred_price = prev_price * 1.05
-            if pred_price < prev_price * 0.95: pred_price = prev_price * 0.95
-            
+             
+        for i in range(days):
+            price = median_path[i]
             future_predictions.append({
-                'Date': (last_date + timedelta(days=i)).strftime('%Y-%m-%d'),
-                'Price': pred_price,
-                'Day': i
+                'Date': (last_date + timedelta(days=i+1)).strftime('%Y-%m-%d'),
+                'Price': price,
+                'Day': i+1
             })
-            
-            # Update history
-            history_buffer.append(pred_price)
-            history_buffer.pop(0) # Keep size 20
-            
-            # Re-construct features for next step
-            # 'Lag_1', 'Lag_2', 'Lag_5', 'MA_10', 'MA_20'
-            new_lag_1 = history_buffer[-1]
-            new_lag_2 = history_buffer[-2]
-            new_lag_5 = history_buffer[-5]
-            new_ma_10 = sum(history_buffer[-10:]) / 10
-            new_ma_20 = sum(history_buffer[-20:]) / 20
-            
-            current_input = np.array([[new_lag_1, new_lag_2, new_lag_5, new_ma_10, new_ma_20]])
 
-        # 4. Generate Key Targets
+        # 5. Generate Key Targets
         targets = {}
         target_days = [10, 30, 60, 90, 120]
-        base_price = df['Close'].iloc[-1]
         
         for d in target_days:
             if d <= len(future_predictions):
                 p = future_predictions[d-1]['Price']
-                chg = ((p - base_price) / base_price) * 100
+                chg = ((p - last_price) / last_price) * 100
                 targets[d] = {'price': p, 'change': chg}
+        
+        return {
+            'model_name': 'Monte Carlo (GBM) Simulation',
+            'projections': future_predictions,
+            'targets': targets,
+            'last_close': last_price,
+            'volatility': sigma
+        }
         
         return {
             'model_name': 'RandomForest AI (Recursive)',
