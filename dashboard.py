@@ -590,10 +590,7 @@ elif page == "🔍 Deep Analyzer":
         if ".BO" in target: st.session_state['exchange_radio'] = "BSE"
         else: st.session_state['exchange_radio'] = "NSE"
         
-        # 2. Sync Manual Ticker
-        st.session_state['manual_ticker'] = clean_name
-        
-        # 3. Sync Search Box
+        # 2. Sync Search Box
         for opt in TICKER_OPTIONS:
             if opt.startswith(f"{clean_name} -"):
                 st.session_state['master_search'] = opt
@@ -606,7 +603,7 @@ elif page == "🔍 Deep Analyzer":
     st.header(f"🔍 Deep Analyzer")
     
     # 1. Search & Exchange Row
-    sc1, sc2, sc3 = st.columns([1, 2, 2])
+    sc1, sc2 = st.columns([1, 3])
     
     with sc1:
         st.write("**🏛️ Exchange**")
@@ -615,52 +612,26 @@ elif page == "🔍 Deep Analyzer":
         st.session_state['exchange'] = st.session_state['exchange_radio']
     
     with sc2:
-        st.write("**🔍 Search Name**")
-        def sync_from_list():
-            if st.session_state.get('master_search'):
-                sym = st.session_state['master_search'].split(' - ')[0]
-                st.session_state['manual_ticker'] = sym
-
+        st.write("**🔍 Search Stock**")
         st.selectbox(
             "Search Ticker or Company Name",
             TICKER_OPTIONS,
             key="master_search",
-            on_change=sync_from_list,
             label_visibility="collapsed"
         )
-
-    with sc3:
-        st.write("**⌨️ Manual Ticker**")
-        ticker_input_raw = st.text_input(
-            "Ticker (e.g. RELIANCE)", 
-            key="manual_ticker",
-            label_visibility="collapsed"
-        ).upper()
         
-    # Process Ticker
-    # Process Ticker
-    if ticker_input_raw:
+    # Process Ticker from autocomplete
+    if st.session_state.get('master_search'):
+        sym = st.session_state['master_search'].split(' - ')[0]
         suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
-        ticker_input = ticker_input_raw if "." in ticker_input_raw else f"{ticker_input_raw}{suffix}"
+        ticker_input = f"{sym}{suffix}"
         
         # SEO Injection: Update Title Tag
-        clean_name = ticker_input.split('.')[0]
-        st.markdown(f"<html><head><title>Analyzing {clean_name} | Stock Analysis Pro</title></head></html>", unsafe_allow_html=True)
+        st.markdown(f"<html><head><title>Analyzing {sym} | Stock Analysis Pro</title></head></html>", unsafe_allow_html=True)
     else:
-        if st.session_state.get('master_search'):
-            sym = st.session_state['master_search'].split(' - ')[0]
-            suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
-            ticker_input = f"{sym}{suffix}"
-        else:
-            ticker_input = "RELIANCE.NS"
+        ticker_input = "RELIANCE.NS"
 
-    # Process Ticker
-
-    clean_manual = ticker_input_raw.split('.')[0]
-    if clean_manual in TICKER_MAP:
-         st.caption(f"✨ Detected: **{TICKER_MAP[clean_manual]}**")
-    
-    st.write("") # Spacer
+    # 2. Period Selection Row
 
     # --- Main Screen Configuration (Execution) ---
     
