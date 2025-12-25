@@ -67,15 +67,31 @@ st.markdown("""
     div[data-testid="stMetric"] {
         background-color: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 15px 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        padding: 5px 12px; /* Compact padding */
+        border-radius: 8px; /* Fixed radius */
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         transition: transform 0.2s;
     }
+    div[data-testid="stMetric"] label {
+        font-size: 13px !important; /* Smaller label */
+    }
+    div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+        font-size: 20px !important; /* Smaller value */
+    }
     div[data-testid="stMetric"]:hover {
-        transform: translateY(-2px);
+        transform: translateY(-1px);
         background-color: rgba(255, 255, 255, 0.08);
         border-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Reduce global vertical spacing */
+    .block-container {
+        padding-top: 2rem !important;
+        padding-bottom: 2rem !important;
+    }
+    h1, h2, h3, h4 {
+        margin-top: 5px !important;
+        margin-bottom: 5px !important;
     }
     /* Marquee Styling */
     .marquee {
@@ -261,10 +277,10 @@ except ImportError:
 def render_ad_space():
     """Placeholder for premium advertisements/sponsor banners."""
     st.markdown("""
-    <div style="background: linear-gradient(90deg, #1e1e1e, #2d2d2d); padding: 20px; border-radius: 12px; border: 1px dashed rgba(0, 255, 0, 0.3); text-align: center; margin-bottom: 25px;">
-        <div style="font-size: 10px; color: #00FF00; opacity: 0.6; text-transform: uppercase; margin-bottom: 5px;">👑 Sponsored Collaboration</div>
-        <div style="font-size: 18px; font-weight: bold; color: #FFF;">Your Brand Name & Promotion Here</div>
-        <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">Reach 10,000+ active traders daily with premium placement. 
+    <div style="background: linear-gradient(90deg, #1e1e1e, #2d2d2d); padding: 12px; border-radius: 10px; border: 1px dashed rgba(0, 255, 0, 0.2); text-align: center; margin-bottom: 15px;">
+        <div style="font-size: 9px; color: #00FF00; opacity: 0.6; text-transform: uppercase; margin-bottom: 2px;">👑 Sponsored Collaboration</div>
+        <div style="font-size: 15px; font-weight: bold; color: #FFF;">Your Brand Name & Promotion Here</div>
+        <div style="font-size: 11px; opacity: 0.8; margin-top: 2px;">Reach 10,000+ active traders daily with premium placement. 
         <a href="mailto:chandratregaurav+stocks@gmail.com" style="color: #00FF00; text-decoration: none;">Contact for Ad Rates →</a></div>
     </div>
     """, unsafe_allow_html=True)
@@ -451,20 +467,21 @@ if page == "Home":
         screener = StockScreener(POPULAR_STOCKS)
         day_stars, month_stars = screener.get_market_stars()
         
-    # --- Line 1: Stars of the Month (Fixed 2) ---
-    st.subheader("🏆 Monthly Leaderboard (Top 2)")
-    mc1, mc2 = st.columns(2)
-    for i, star in enumerate(month_stars[:2]):
-        col = mc1 if i == 0 else mc2
-        with col:
+    # --- Line 1: Stars of the Month (Compact 3-col) ---
+    st.markdown("#### 🏆 Leaderboard (Month/Day)")
+    m_cols = st.columns(3)
+    
+    # Show Top 3 Monthly leaders in 3 columns
+    for i, star in enumerate(month_stars[:3]):
+        with m_cols[i % 3]:
             st.markdown(f"""
-            <div style="background-color: rgba(255, 215, 0, 0.05); border: 2px solid rgba(255, 215, 0, 0.3); padding: 20px; border-radius: 12px; text-align: center;">
-                <h4 style="margin:0; opacity: 0.8;">Star of the Month</h4>
-                <h2 style="color: #FFD700; margin: 10px 0;">{star['ticker']}</h2>
-                <p style="font-size: 20px; font-weight: bold; margin:0;">{star['change']:+.2f}%</p>
+            <div style="background-color: rgba(255, 215, 0, 0.05); border: 1px solid rgba(255, 215, 0, 0.2); padding: 12px; border-radius: 10px; text-align: center;">
+                <div style="font-size: 10px; opacity: 0.7; text-transform: uppercase;">Star of the Month</div>
+                <div style="color: #FFD700; font-size: 18px; font-weight: bold; margin: 4px 0;">{star['ticker']}</div>
+                <div style="font-size: 15px; font-weight: bold;">{star['change']:+.2f}%</div>
             </div>
             """, unsafe_allow_html=True)
-            if st.button(f"Analyze {star['ticker']} (Month)", key=f"month_btn_{i}", use_container_width=True):
+            if st.button(f"Analyze {star['ticker']}", key=f"month_btn_{i}", use_container_width=True):
                  st.session_state['page_target'] = "🔍 Deep Analyzer"
                  st.session_state['ticker_target'] = star['ticker']
                  st.session_state['trigger_analyze'] = True
@@ -472,39 +489,18 @@ if page == "Home":
 
     st.write("") # Spacer
     
-    # --- Line 2 & 3: Stars of the Day (Top 4) ---
-    st.subheader("🔥 Daily Breakouts (Top 4)")
-    # Row 1 of Day Stars
-    dc1, dc2 = st.columns(2)
-    for i, star in enumerate(day_stars[:2]):
-        col = dc1 if i == 0 else dc2
-        with col:
+    # --- Line 2: Daily Breakouts (Compact 3-col) ---
+    d_cols = st.columns(3)
+    for i, star in enumerate(day_stars[:3]):
+        with d_cols[i % 3]:
             st.markdown(f"""
-            <div style="background-color: rgba(0, 255, 0, 0.05); border: 2px solid rgba(0, 255, 0, 0.3); padding: 20px; border-radius: 12px; text-align: center;">
-                <h4 style="margin:0; opacity: 0.8;">Star of the Day</h4>
-                <h2 style="color: #00FF00; margin: 10px 0;">{star['ticker']}</h2>
-                <p style="font-size: 20px; font-weight: bold; margin:0;">{star['change']:+.2f}%</p>
+            <div style="background-color: rgba(0, 255, 0, 0.05); border: 1px solid rgba(0, 255, 0, 0.2); padding: 12px; border-radius: 10px; text-align: center;">
+                <div style="font-size: 10px; opacity: 0.7; text-transform: uppercase;">Star of the Day</div>
+                <div style="color: #00FF00; font-size: 18px; font-weight: bold; margin: 4px 0;">{star['ticker']}</div>
+                <div style="font-size: 15px; font-weight: bold;">{star['change']:+.2f}%</div>
             </div>
             """, unsafe_allow_html=True)
-            if st.button(f"Analyze {star['ticker']} (Day)", key=f"day_btn_{i}", use_container_width=True):
-                 st.session_state['page_target'] = "🔍 Deep Analyzer"
-                 st.session_state['ticker_target'] = star['ticker']
-                 st.session_state['trigger_analyze'] = True
-                 st.rerun()
-
-    # Row 2 of Day Stars
-    dc3, dc4 = st.columns(2)
-    for i, star in enumerate(day_stars[2:4]):
-        col = dc3 if i == 0 else dc4
-        with col:
-            st.markdown(f"""
-            <div style="background-color: rgba(0, 255, 0, 0.05); border: 2px solid rgba(0, 255, 0, 0.3); padding: 20px; border-radius: 12px; text-align: center;">
-                <h4 style="margin:0; opacity: 0.8;">Star of the Day</h4>
-                <h2 style="color: #00FF00; margin: 10px 0;">{star['ticker']}</h2>
-                <p style="font-size: 20px; font-weight: bold; margin:0;">{star['change']:+.2f}%</p>
-            </div>
-            """, unsafe_allow_html=True)
-            if st.button(f"Analyze {star['ticker']} (Day)", key=f"day_btn_{i+2}", use_container_width=True):
+            if st.button(f"Analyze {star['ticker']}", key=f"day_btn_{i}", use_container_width=True):
                  st.session_state['page_target'] = "🔍 Deep Analyzer"
                  st.session_state['ticker_target'] = star['ticker']
                  st.session_state['trigger_analyze'] = True
