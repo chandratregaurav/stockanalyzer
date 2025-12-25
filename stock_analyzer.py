@@ -245,6 +245,74 @@ class StockAnalyzer:
                     'Day': i
                 })
 
+        # --- STRATEGY 4: XGBoost AI ---
+        elif model_type == 'XGBoost AI (Gradient Boosting)':
+            try:
+                from xgboost import XGBRegressor
+            except ImportError:
+                print("XGBoost not installed.")
+                return None
+                
+            # Features
+            df['Lag_1'] = df['Close'].shift(1)
+            df['Lag_2'] = df['Close'].shift(2)
+            df['Lag_5'] = df['Close'].shift(5)
+            df['MA_10'] = df['Close'].rolling(window=10).mean()
+            df['MA_20'] = df['Close'].rolling(window=20).mean()
+            df = df.dropna()
+            
+            X = df[['Lag_1', 'Lag_2', 'Lag_5', 'MA_10', 'MA_20']].values
+            y = df['Close'].values
+            
+            model = XGBRegressor(n_estimators=100, learning_rate=0.1, max_depth=5, random_state=42)
+            model.fit(X, y)
+            
+            history_buffer = list(df['Close'].values[-20:])
+            current_input = np.array([[
+                history_buffer[-1], history_buffer[-2], history_buffer[-5],
+                sum(history_buffer[-10:])/10, sum(history_buffer[-20:])/20
+            ]])
+            
+            for i in range(1, days + 1):
+                pred_price = model.predict(current_input)[0]
+                prev = history_buffer[-1]
+                pred_price = max(prev * 0.95, min(prev * 1.05, pred_price))
+                
+                future_predictions.append({
+                    'Date': (last_date + timedelta(days=i)).strftime('%Y-%m-%d'),
+                    'Price': pred_price,
+                    'Day': i
+                })
+                history_buffer.append(pred_price)
+                history_buffer.pop(0)
+                current_input = np.array([[
+                    history_buffer[-1], history_buffer[-2], history_buffer[-5],
+                    sum(history_buffer[-10:])/10, sum(history_buffer[-20:])/20
+                ]])
+
+        # --- STRATEGY 5: Ensemble (Best of All) ---
+        elif model_type == 'Ensemble (Best of All)':
+            # Recursively call this function for the component models
+            # We don't want infinite recursion so we hardcode the sub-calls
+            mc = self.generate_forecast(days, 'Monte Carlo (GBM)')
+            rf = self.generate_forecast(days, 'Random Forest AI')
+            xg = self.generate_forecast(days, 'XGBoost AI (Gradient Boosting)')
+            
+            # Combine
+            if mc and rf and xg:
+                mc_preds = {x['Day']: x['Price'] for x in mc['projections']}
+                rf_preds = {x['Day']: x['Price'] for x in rf['projections']}
+                xg_preds = {x['Day']: x['Price'] for x in xg['projections']}
+                
+                for i in range(1, days + 1):
+                    # Average the predictions
+                    avg_price = (mc_preds[i] + rf_preds[i] + xg_preds[i]) / 3
+                    future_predictions.append({
+                        'Date': (last_date + timedelta(days=i)).strftime('%Y-%m-%d'),
+                        'Price': avg_price,
+                        'Day': i
+                    })
+
         # --- Common Output Construction ---
         targets = {}
         target_days = [10, 30, 60, 90, 120]

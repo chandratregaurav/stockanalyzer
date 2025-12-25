@@ -892,7 +892,7 @@ elif page == "🔍 Deep Analyzer":
         # Model Selector
         model_choice = st.selectbox(
             "🧠 Select Forecasting Model",
-            ["Monte Carlo (GBM)", "Random Forest AI", "Linear Regression (Trend)"],
+            ["Monte Carlo (GBM)", "XGBoost AI (Gradient Boosting)", "Random Forest AI", "Linear Regression (Trend)", "Ensemble (Best of All)"],
             index=0,
             help="Choose the algorithm used for future price projection."
         )
