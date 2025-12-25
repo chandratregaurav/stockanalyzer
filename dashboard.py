@@ -510,13 +510,52 @@ if page == "Home":
     is_open, status_msg = is_market_open()
     st.info(f"📅 **Status:** {status_msg}")
 
-    # 2. 🌟 Market Stars Section
+    # --- 2. 🌟 Market Stars Section ---
     st.subheader("🌟 Market Leaders")
     
-    with st.spinner("Scanning for top performers..."):
-        screener = StockScreener(POPULAR_STOCKS)
-        day_stars, month_stars = screener.get_market_stars()
-        
+    day_stars = []
+    month_stars = []
+    data_source = "Live Scan"
+
+    # Try to load from cache first
+    cache_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "market_cache.json")
+    loaded_from_cache = False
+    
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r") as f:
+                cache_data = json.load(f)
+                
+            # Parse Day Stars
+            for item in cache_data.get("top_gainers_1d", [])[:4]:
+                day_stars.append({
+                    'ticker': item['ticker'],
+                    'price': item['price'],
+                    'change': item['change_1d']
+                })
+                
+            # Parse Month Stars
+            for item in cache_data.get("top_gainers_30d", [])[:3]:
+                month_stars.append({
+                    'ticker': item['ticker'],
+                    'price': item['price'],
+                    'change': item['change_30d']
+                })
+            
+            if day_stars and month_stars:
+                loaded_from_cache = True
+                data_source = f"Cached ({cache_data.get('last_updated', '')[:16].replace('T', ' ')})"
+        except Exception as e:
+            pass
+            
+    if not loaded_from_cache:
+        with st.spinner("Scanning popular stocks for top performers..."):
+            screener = StockScreener(POPULAR_STOCKS)
+            day_stars, month_stars = screener.get_market_stars()
+            
+    if loaded_from_cache:
+        st.caption(f"⚡ Data Source: {data_source} • Auto-refreshes every 10 mins via background job")
+
     # --- Line 1: Stars of the Month (Compact 3-col) ---
     st.markdown("#### 🏆 Leaderboard (Month/Day)")
     m_cols = st.columns(3)
