@@ -321,10 +321,15 @@ def render_market_data_bar():
     # Fallback to Live Fetch for Pulse if data missing
     if not all(metrics.values()):
         try:
-            sym_map = {"^NSEI": "NIFTY 50", "^BSESN": "SENSEX", "^NSEBANK": "BANK NIFTY", "^NSEMDCP100": "MIDCAP 100", "^INDIAVIX": "INDIA VIX"}
+            sym_map = {"^NSEI": "NIFTY 50", "^BSESN": "SENSEX", "^NSEBANK": "BANK NIFTY", "^NIFMD": "MIDCAP 100", "INDIAVIX.NS": "INDIA VIX"}
             d = yf.download(list(sym_map.keys()), period="2d", progress=False)
             if not d.empty:
                 close_data = d['Close']
+                # If d is a Series (one symbol), convert to DF
+                if isinstance(close_data, pd.Series):
+                    symbol = list(sym_map.keys())[0]
+                    close_data = pd.DataFrame({symbol: close_data})
+                
                 for sym, name in sym_map.items():
                     if sym in close_data:
                         valid_c = close_data[sym].dropna()
@@ -332,19 +337,18 @@ def render_market_data_bar():
                             p = float(valid_c.iloc[-1])
                             prev = float(valid_c.iloc[-2]) if len(valid_c) > 1 else p
                             metrics[name] = {"name": name, "price": p, "change": ((p-prev)/prev)*100}
-        except: pass
+        except Exception: pass
 
     # Render 5-column Index Bar
     cols = st.columns(5)
     for i, name in enumerate(target_names):
         m = metrics.get(name)
-        if m:
-            with cols[i]:
+        with cols[i]:
+            if m:
                 prefix = "" if "VIX" in name else "₹"
-                # VIX change is inverted in meaning (Red is fear up, Green is fear down)
-                # But typically metric shows green for positive change. 
-                # For consistency with user expectation, we'll use normal logic.
                 st.metric(name, f"{prefix}{m['price']:,.2f}", f"{m['change']:+.2f}%")
+            else:
+                st.metric(name, "Loading...", "---")
 
     # 2. Add Marquee UI (Exclude the indices shown above)
     if pulse_data:
