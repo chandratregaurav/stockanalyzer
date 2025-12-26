@@ -921,35 +921,39 @@ elif page == "🔍 Deep Analyzer":
         st.session_state['exchange'] = st.session_state['exchange_radio']
     
     with sc2:
-        st.write("**🔍 Search Stock (Type symbol or select from suggestions)**")
+        st.write("**🔍 Search Stock**")
         
-        # Single text input with autocomplete-like behavior
-        user_input = st.text_input(
-            "Enter stock symbol (e.g., ELITECON, RELIANCE, TCS)",
-            key="ticker_search_input",
-            placeholder="Type stock symbol or company name...",
+        # Add "Custom Entry" option to the list
+        search_options = ["⌨️ Type custom symbol..."] + TICKER_OPTIONS
+        
+        selected = st.selectbox(
+            "Search Ticker or Company Name",
+            search_options,
+            key="master_search",
             label_visibility="collapsed"
-        ).strip().upper()
+        )
         
-    # Process Ticker - Smart detection
-    if user_input:
-        # Check if it matches something in our database
-        matched = False
-        for opt in TICKER_OPTIONS:
-            if user_input in opt.upper():
-                # Extract symbol from "SYMBOL - Company Name" format
-                sym = opt.split(' - ')[0]
+        # If user selects custom entry, show text input
+        if selected == "⌨️ Type custom symbol...":
+            custom_symbol = st.text_input(
+                "Enter stock symbol",
+                placeholder="e.g., ELITECON, NETWEB, etc.",
+                key="custom_ticker_input",
+                label_visibility="collapsed"
+            ).strip().upper()
+            
+            if custom_symbol:
                 suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
-                ticker_input = f"{sym}{suffix}"
-                matched = True
-                break
-        
-        if not matched:
-            # User typed something not in database - use it directly
+                ticker_input = f"{custom_symbol}{suffix}"
+                st.markdown(f"<html><head><title>Analyzing {custom_symbol} | Stock Analysis Pro</title></head></html>", unsafe_allow_html=True)
+            else:
+                ticker_input = "RELIANCE.NS"
+        else:
+            # Regular selection from list
+            sym = selected.split(' - ')[0]
             suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
-            ticker_input = f"{user_input}{suffix}"
-        
-        st.markdown(f"<html><head><title>Analyzing {user_input} | Stock Analysis Pro</title></head></html>", unsafe_allow_html=True)
+            ticker_input = f"{sym}{suffix}"
+            st.markdown(f"<html><head><title>Analyzing {sym} | Stock Analysis Pro</title></head></html>", unsafe_allow_html=True)
     else:
         ticker_input = "RELIANCE.NS"
 
