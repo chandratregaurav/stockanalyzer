@@ -858,6 +858,10 @@ elif page == "💎 Potential Multibaggers":
     else:
         st.write("Click the button above to start the professional-grade scan.")
 
+# --- Navigation Helper ---
+def trigger_analysis():
+    st.session_state['trigger_analyze'] = True
+
 elif page == "🔍 Deep Analyzer":
     render_ad_space()
     # --- Forced Redirection Sync ---
@@ -896,7 +900,8 @@ elif page == "🔍 Deep Analyzer":
             "Search Ticker or Company Name",
             TICKER_OPTIONS,
             key="master_search",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            on_change=trigger_analysis
         )
         
     # Process Ticker from autocomplete
@@ -920,8 +925,10 @@ elif page == "🔍 Deep Analyzer":
          period_preset = st.radio(
             "⏱️ Select Chart Period",
             ["1D", "1W", "1M", "1Y", "5Y", "Custom"],
-            index=3, # Default to 1Y as required
-            horizontal=True
+            index=3, # Default to 1Y
+            horizontal=True,
+            key="period_preset_radio",
+            on_change=trigger_analysis
         )
     
     with c_d:
@@ -937,12 +944,21 @@ elif page == "🔍 Deep Analyzer":
             </div>
             """, unsafe_allow_html=True)
 
-    # Period Logic - Always 1 Year for Deep Analyzer as requested
+    # Period Logic - Optimized for 1Y Minimum + 5Y Support
     end_date = date.today()
-    start_date = end_date - timedelta(days=365)
     interval_code = "1d"
     
-    if period_preset == "Custom":
+    if period_preset in ["1D", "1W", "1M", "1Y"]:
+        start_date = end_date - timedelta(days=365) # Minimum 1 Year
+    elif period_preset == "5Y":
+        start_date = end_date - timedelta(days=365*5)
+    elif period_preset == "Custom":
+        # Ensure at least 1 year even for custom for prediction stability
+        t_start = s_date
+        if (end_date - t_start).days < 365:
+            start_date = end_date - timedelta(days=365)
+        else:
+            start_date = t_start
         st.info("Note: Deep Analyzer always uses 1 Year of historical data for reliable AI forecasting.")
 
     # Generate Button
