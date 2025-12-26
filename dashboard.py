@@ -312,28 +312,39 @@ except:
 # --- Market Data Display Logic ---
 marquee_data = get_marquee_data()
 
-# 1. Top Index Bar (Static at top)
-if marquee_data:
-    indices = [d for d in marquee_data if d['name'] in ["NIFTY 50", "BANK NIFTY", "SENSEX"]]
-    other_stocks = [d for d in marquee_data if d['name'] not in ["NIFTY 50", "BANK NIFTY", "SENSEX"]]
+# 1. Top Index Pulse (Refreshed Metrics)
+def render_index_pulse():
+    pulse_data = get_marquee_data()
+    nifty = next((d for d in pulse_data if d['name'] == "NIFTY 50"), None)
+    bank_nifty = next((d for d in pulse_data if d['name'] == "BANK NIFTY"), None)
     
-    if indices:
-        idx_html = ""
-        for idx in indices[:3]: # Only show top 3 indices at top
-            color = "#00FF00" if idx['change'] >= 0 else "#FF4B4B"
-            symbol = "▲" if idx['change'] >= 0 else "▼"
-            idx_html += f"""
-            <div style="flex: 1; text-align: center; border-right: 1px solid rgba(255,255,255,0.1);">
-                <span style="font-size: 10px; opacity: 0.6; display: block;">{idx['name']}</span>
-                <span style="font-size: 14px; font-weight: bold;">₹{idx['price']:,.2f}</span>
-                <span style="color: {color}; font-size: 12px;">{symbol} {abs(idx['change']):.2f}%</span>
-            </div>
-            """
-        st.markdown(f"""
-        <div style="display: flex; background: rgba(255,255,255,0.03); padding: 5px 0; border-radius: 8px; margin-bottom: 5px; border: 1px solid rgba(255,255,255,0.05);">
-            {idx_html}
-        </div>
-        """, unsafe_allow_html=True)
+    # Fallback to Live Fetch for these two if background bot haven't run yet
+    if not nifty or not bank_nifty:
+        try:
+            d = yf.download(["^NSEI", "^NSEBANK"], period="2d", progress=False)
+            if not d.empty:
+                # Handle MultiIndex columns
+                close_data = d['Close']
+                if "^NSEI" in close_data:
+                    nifty_p = float(close_data['^NSEI'].dropna().iloc[-1])
+                    nifty_prev = float(close_data['^NSEI'].dropna().iloc[-2]) if len(close_data) > 1 else nifty_p
+                    nifty = {"name": "NIFTY 50", "price": nifty_p, "change": ((nifty_p-nifty_prev)/nifty_prev)*100}
+                
+                if "^NSEBANK" in close_data:
+                    bn_p = float(close_data['^NSEBANK'].dropna().iloc[-1])
+                    bn_prev = float(close_data['^NSEBANK'].dropna().iloc[-2]) if len(close_data) > 1 else bn_p
+                    bank_nifty = {"name": "BANK NIFTY", "price": bn_p, "change": ((bn_p-bn_prev)/bn_prev)*100}
+        except: pass
+
+    col1, col2 = st.columns(2)
+    if nifty:
+        with col1:
+            st.metric("💠 NIFTY 50", f"₹{nifty['price']:,.2f}", f"{nifty['change']:+.2f}%")
+    if bank_nifty:
+        with col2:
+            st.metric("🏦 BANK NIFTY", f"₹{bank_nifty['price']:,.2f}", f"{bank_nifty['change']:+.2f}%")
+
+render_index_pulse()
 
 # 2. Add Marquee UI (20 Stocks)
 marquee_placeholder = st.empty()
