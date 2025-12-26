@@ -108,7 +108,7 @@ st.markdown("""
     }
     .marquee-content {
         display: inline-block;
-        animation: marquee 25s linear infinite;
+        animation: marquee 120s linear infinite;
         padding-left: 100%;
     }
     .marquee-content:hover {
@@ -121,7 +121,7 @@ st.markdown("""
     .marquee-item {
         display: inline-block;
         padding-right: 50px;
-        font-size: 16px;
+        font-size: 13px;
         font-weight: bold;
     }
     
@@ -283,7 +283,15 @@ def get_marquee_data():
     symbols = {
         "^NSEI": "NIFTY 50", "^BSESN": "SENSEX", "^NSEBANK": "BANK NIFTY",
         "RELIANCE.NS": "RELIANCE", "HDFCBANK.NS": "HDFC BANK", "ICICIBANK.NS": "ICICI BANK",
-        "TCS.NS": "TCS", "INFY.NS": "INFY", "SBIN.NS": "SBI", "BHARTIARTL.NS": "AIRTEL"
+        "TCS.NS": "TCS", "INFY.NS": "INFY", "SBIN.NS": "SBI", "BHARTIARTL.NS": "AIRTEL",
+        "ITC.NS": "ITC", "KOTAKBANK.NS": "KOTAK BANK", "LT.NS": "L&T", "WIPRO.NS": "WIPRO",
+        "AXISBANK.NS": "AXIS BANK", "HINDUNILVR.NS": "HUL", "ADANIENT.NS": "ADANI ENT",
+        "SUNPHARMA.NS": "SUN PHARMA", "TATAMOTORS.NS": "TATA MOTORS", "M&M.NS": "M&M",
+        "BAJFINANCE.NS": "BAJAJ FINANCE", "MARUTI.NS": "MARUTI", "TITAN.NS": "TITAN",
+        "NESTLEIND.NS": "NESTLE", "TATASTEEL.NS": "TATA STEEL", "POWERGRID.NS": "POWERGRID",
+        "JSWSTEEL.NS": "JSW STEEL", "NTPC.NS": "NTPC", "HCLTECH.NS": "HCL TECH",
+        "ASIANPAINT.NS": "ASIAN PAINT", "BAJAJ-AUTO.NS": "BAJAJ AUTO", "ULTRACEMCO.NS": "ULTRATECH",
+        "GRASIM.NS": "GRASIM", "TECHM.NS": "TECHM", "ADANIPORTS.NS": "ADANI PORTS"
     }
     results = []
     try:
