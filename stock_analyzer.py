@@ -181,55 +181,45 @@ class StockAnalyzer:
         # --- STRATEGY 2: Random Forest AI ---
         elif model_type == 'Random Forest AI':
             if RandomForestRegressor is None:
-                print("Random Forest not available.")
                 return None
             
-            # Features
-            df['Lag_1'] = df['Close'].shift(1)
-            df['Lag_2'] = df['Close'].shift(2)
-            df['Lag_5'] = df['Close'].shift(5)
-            df['MA_10'] = df['Close'].rolling(window=10).mean()
-            df['MA_20'] = df['Close'].rolling(window=20).mean()
+            # Feature Engineering: Use RETURNS instead of absolute prices
+            # This prevents the "flat line" issue when a stock is at new price levels
+            df['Pct_Chg'] = df['Close'].pct_change()
+            df['Lag_1'] = df['Pct_Chg'].shift(1)
+            df['Lag_2'] = df['Pct_Chg'].shift(2)
+            df['MA_5'] = df['Pct_Chg'].rolling(window=5).mean()
             df = df.dropna()
             
-            if df.empty: return None
+            if len(df) < 20: return None
             
-            X = df[['Lag_1', 'Lag_2', 'Lag_5', 'MA_10', 'MA_20']].values
-            y = df['Close'].values
+            X = df[['Lag_1', 'Lag_2', 'MA_5']].values
+            y = df['Pct_Chg'].values
             
-            model = RandomForestRegressor(n_estimators=30, max_depth=8, random_state=42)
+            model = RandomForestRegressor(n_estimators=50, max_depth=5, random_state=42)
             model.fit(X, y)
             
-            # Recursive Forecast
-            history_buffer = list(df['Close'].values[-20:])
-            # Initial Input
-            current_input = [
-                history_buffer[-1], history_buffer[-2], history_buffer[-5],
-                sum(history_buffer[-10:])/10, sum(history_buffer[-20:])/20
-            ]
-            current_input = np.array([current_input])
+            current_price = last_price
+            history_pct = list(df['Pct_Chg'].tail(5).values)
             
             for i in range(1, days + 1):
-                pred_price = model.predict(current_input)[0]
+                feat = np.array([[history_pct[-1], history_pct[-2], sum(history_pct)/5]])
+                pred_pct = model.predict(feat)[0]
                 
-                # Dynamic Constraint (Limit volatility to 5% per day to prevent explosion)
-                prev = history_buffer[-1]
-                pred_price = max(prev * 0.95, min(prev * 1.05, pred_price))
+                # Add a tiny bit of "Market Noise" for realism (0.1% volatility)
+                noise = np.random.normal(0, 0.001)
+                final_move = pred_pct + noise
+                
+                # Update price
+                current_price *= (1 + final_move)
                 
                 future_predictions.append({
                     'Date': (last_date + timedelta(days=i)).strftime('%Y-%m-%d'),
-                    'Price': pred_price,
+                    'Price': current_price,
                     'Day': i
                 })
-                
-                history_buffer.append(pred_price)
-                history_buffer.pop(0)
-                # Recalculate features
-                new_input = [
-                    history_buffer[-1], history_buffer[-2], history_buffer[-5],
-                    sum(history_buffer[-10:])/10, sum(history_buffer[-20:])/20
-                ]
-                current_input = np.array([new_input])
+                history_pct.append(final_move)
+                history_pct.pop(0)
 
         # --- STRATEGY 3: Linear Regression (Trend) ---
         elif model_type == 'Linear Regression (Trend)':
@@ -261,48 +251,42 @@ class StockAnalyzer:
         # --- STRATEGY 4: XGBoost AI ---
         elif model_type == 'XGBoost AI (Gradient Boosting)':
             if XGBRegressor is None:
-                print("XGBoost not installed.")
                 return None
                 
-            # Features
-            df['Lag_1'] = df['Close'].shift(1)
-            df['Lag_2'] = df['Close'].shift(2)
-            df['Lag_5'] = df['Close'].shift(5)
-            df['MA_10'] = df['Close'].rolling(window=10).mean()
-            df['MA_20'] = df['Close'].rolling(window=20).mean()
+            # Same trend-based logic for XGBoost
+            df['Pct_Chg'] = df['Close'].pct_change()
+            df['Lag_1'] = df['Pct_Chg'].shift(1)
+            df['MA_10'] = df['Pct_Chg'].rolling(window=10).mean()
             df = df.dropna()
             
-            if df.empty: return None
+            if len(df) < 20: return None
             
-            X = df[['Lag_1', 'Lag_2', 'Lag_5', 'MA_10', 'MA_20']].values
-            y = df['Close'].values
+            X = df[['Lag_1', 'MA_10']].values
+            y = df['Pct_Chg'].values
             
-            # Optimized for speed: fewer estimators, faster training
-            model = XGBRegressor(n_estimators=30, learning_rate=0.1, max_depth=4, random_state=42)
+            model = XGBRegressor(n_estimators=50, learning_rate=0.05, max_depth=3, random_state=42)
             model.fit(X, y)
             
-            history_buffer = list(df['Close'].values[-20:])
-            current_input = np.array([[
-                history_buffer[-1], history_buffer[-2], history_buffer[-5],
-                sum(history_buffer[-10:])/10, sum(history_buffer[-20:])/20
-            ]])
+            current_price = last_price
+            history_pct = list(df['Pct_Chg'].tail(10).values)
             
             for i in range(1, days + 1):
-                pred_price = model.predict(current_input)[0]
-                prev = history_buffer[-1]
-                pred_price = max(prev * 0.95, min(prev * 1.05, pred_price))
+                feat = np.array([[history_pct[-1], sum(history_pct)/10]])
+                pred_pct = model.predict(feat)[0]
+                
+                # Realism: Inject trend-preserving volatility
+                noise = np.random.normal(0, 0.002)
+                final_move = (pred_pct * 0.7) + noise # Dampen AI slightly, favor noise/trend
+                
+                current_price *= (1 + final_move)
                 
                 future_predictions.append({
                     'Date': (last_date + timedelta(days=i)).strftime('%Y-%m-%d'),
-                    'Price': pred_price,
+                    'Price': current_price,
                     'Day': i
                 })
-                history_buffer.append(pred_price)
-                history_buffer.pop(0)
-                current_input = np.array([[
-                    history_buffer[-1], history_buffer[-2], history_buffer[-5],
-                    sum(history_buffer[-10:])/10, sum(history_buffer[-20:])/20
-                ]])
+                history_pct.append(final_move)
+                history_pct.pop(0)
 
         # --- STRATEGY 5: Ensemble (Best of All) ---
         elif model_type == 'Ensemble (Best of All)':
