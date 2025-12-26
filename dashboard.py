@@ -912,46 +912,47 @@ elif page == "💎 Potential Multibaggers":
         current_strat = st.session_state.get('last_multibagger_strat', "selected")
         current_univ = st.session_state.get('last_multibagger_universe', "Market")
         
-        st.write(f"### 💎 Top 10 Multibagger Recommendations ({current_strat} | {current_univ})")
+        st.markdown(f"### 💎 {current_univ} • {current_strat}")
         st.markdown("---")
         
-        # Table Header
-        hcol1, hcol2, hcol3, hcol4, hcol5 = st.columns([1.5, 1, 1, 3, 1.2])
-        with hcol1: st.write("**📦 TICKER**")
-        with hcol2: st.write("**💰 PRICE**")
-        with hcol3: st.write("**🎯 SIGNAL**")
-        with hcol4: st.write("**💡 KEY REASONS**")
-        with hcol5: st.write("**🛠️ ACTION**")
+        # Ultra-compact Table Header
+        hcol1, hcol2, hcol3, hcol4, hcol5 = st.columns([1.2, 0.8, 0.7, 3, 1])
+        with hcol1: st.caption("STOCK NAME")
+        with hcol2: st.caption("PRICE")
+        with hcol3: st.caption("SIGNAL")
+        with hcol4: st.caption("ANALYSIS COMMENT / REASONS")
+        with hcol5: st.caption("ACTION")
         
-        st.markdown('<div style="margin-top: -10px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="margin-top: -15px; border-bottom: 2px solid rgba(255,255,255,0.1); margin-bottom: 10px;"></div>', unsafe_allow_html=True)
 
         for stock in candidates:
-            # Each stock in a row
-            rcol1, rcol2, rcol3, rcol4, rcol5 = st.columns([1.5, 1, 1, 3, 1.2])
+            # Row Container with minimal padding
+            rcol1, rcol2, rcol3, rcol4, rcol5 = st.columns([1.2, 0.8, 0.7, 3, 1])
             
             with rcol1:
-                st.markdown(f'<h4 style="color: #00FF00; margin: 0;">{stock["ticker"]}</h4>', unsafe_allow_html=True)
+                st.markdown(f'<div style="font-weight: bold; color: #00FF00; font-size: 14px;">{stock["ticker"]}</div>', unsafe_allow_html=True)
             
             with rcol2:
-                st.write(f"₹{stock['current_price']:.2f}")
+                st.markdown(f'<div style="font-size: 14px;">₹{stock["current_price"]:,.2f}</div>', unsafe_allow_html=True)
             
             with rcol3:
-                st.markdown(f'<span style="background: rgba(0,255,0,0.1); color: #00FF00; padding: 3px 8px; border-radius: 5px; font-weight: bold;">{stock["score"]}%</span>', unsafe_allow_html=True)
+                st.markdown(f'<div style="color: #00FF00; font-weight: bold; font-size: 14px;">{stock["score"]}%</div>', unsafe_allow_html=True)
             
             with rcol4:
-                reasons = " • ".join(stock['reasons'])
-                st.markdown(f'<span style="font-size: 13px; opacity: 0.8;">{reasons}</span>', unsafe_allow_html=True)
+                reasons = " | ".join(stock['reasons'])
+                st.markdown(f'<div style="font-size: 12px; opacity: 0.7; line-height: 1.2;">{reasons}</div>', unsafe_allow_html=True)
             
             with rcol5:
-                if st.button("🔍 Analyze", key=f"multi_btn_{stock['ticker']}", use_container_width=True):
+                # Small button
+                if st.button("Analyze", key=f"tbl_scr_{stock['ticker']}", use_container_width=True):
                     st.session_state['ticker_target'] = stock['ticker']
                     st.session_state['page_target'] = "🔍 Deep Analyzer"
                     st.session_state['trigger_analyze'] = True 
                     st.rerun()
             
-            st.markdown('<div style="border-bottom: 1px solid rgba(255,255,255,0.05); margin: 10px 0;"></div>', unsafe_allow_html=True)
+            st.markdown('<div style="border-bottom: 1px solid rgba(255,255,255,0.05); margin: 5px 0;"></div>', unsafe_allow_html=True)
 
-        st.success(f"Scanning complete. Showing top {len(candidates)} potential gems.")
+        st.success(f"Scanning complete. Found {len(candidates)} candidates.")
             
         if st.button("🗑️ Clear Results"):
             del st.session_state['multibagger_results']

@@ -270,62 +270,63 @@ class StockScreener:
         
         def process_ticker(ticker):
             try:
-                # Use a fresh instance of yfinance to avoid thread data clashing
-                end_date = date.today() + timedelta(days=1) 
-                start_date = end_date - timedelta(days=200) 
-                df = yf.download(ticker, start=start_date, end=end_date, progress=False, auto_adjust=True, threads=False)
+                # 1. Fetch historical data for indicators
+                hist_df = yf.download(ticker, period="1y", progress=False, auto_adjust=True, threads=False)
+                if hist_df is None or hist_df.empty or len(hist_df) < 100: return None
                 
-                if df is None or df.empty or len(df) < 60:
-                    return None
+                # 2. Fetch LATEST price separately (disable auto-adjust for display price to match NSE)
+                latest_data = yf.download(ticker, period="1d", interval="1m", progress=False, auto_adjust=False, threads=False)
+                if latest_data.empty: return None
                 
-                # Flatten columns
-                if isinstance(df.columns, pd.MultiIndex):
-                    df.columns = df.columns.droplevel('Ticker')
-                df = df.loc[:, ~df.columns.duplicated()].copy()
+                # Flatten columns if MultiIndex
+                if isinstance(hist_df.columns, pd.MultiIndex): hist_df.columns = hist_df.columns.droplevel('Ticker')
+                if isinstance(latest_data.columns, pd.MultiIndex): latest_data.columns = latest_data.columns.droplevel('Ticker')
                 
-                close = df['Close']
-                cur_p = float(close.iloc[-1])
+                cur_p = float(latest_data['Close'].iloc[-1])
+                close_hist = hist_df['Close']
+                
                 score = 50 # Base
                 reasons = []
                 
                 # --- Strategy Modules ---
                 if strategy == "CAN SLIM (William O'Neil)":
-                    hi_52 = close.max()
+                    hi_52 = close_hist.max()
                     dist_hi = (hi_52 - cur_p) / hi_52
-                    ma50 = close.rolling(window=50, min_periods=1).mean().iloc[-1]
-                    ma100 = close.rolling(window=100, min_periods=1).mean().iloc[-1]
-                    if cur_p > ma50 > ma100 and dist_hi < 0.15:
+                    ma50 = close_hist.rolling(window=50).mean().iloc[-1]
+                    ma200 = close_hist.rolling(window=200).mean().iloc[-1]
+                    if cur_p > ma50 > ma200 and dist_hi < 0.20:
                         score += 40
-                        reasons.append("Institutional Leader")
+                        reasons.append("Institutional Breakout Trend")
                     else: score -= 20
                     
                 elif strategy == "Minervini Trend Template":
-                    ma50 = close.rolling(window=50, min_periods=1).mean().iloc[-1]
-                    ma150 = close.rolling(window=150, min_periods=1).mean().iloc[-1]
-                    if cur_p > ma50 > ma150:
+                    ma50 = close_hist.rolling(window=50).mean().iloc[-1]
+                    ma150 = close_hist.rolling(window=150).mean().iloc[-1]
+                    ma200 = close_hist.rolling(window=200).mean().iloc[-1]
+                    if cur_p > ma50 > ma150 > ma200:
                         score += 45
-                        reasons.append("Stage-2 Uptrend Confirmation")
+                        reasons.append("Perfect Stage-2 Alignment")
                     else: score -= 30
                     
                 elif strategy == "Low-Cap Moonshot (Beta)":
-                    v_sma = df['Volume'].rolling(window=20, min_periods=1).mean().iloc[-1]
-                    v_ratio = df['Volume'].iloc[-1] / v_sma if v_sma > 0 else 1.0
-                    if v_ratio > 2.5:
+                    v_sma = hist_df['Volume'].rolling(window=20).mean().iloc[-1]
+                    v_ratio = latest_data['Volume'].sum() / v_sma if v_sma > 0 else 1.0
+                    if v_ratio > 2.0:
                         score += 50
-                        reasons.append("Heavy Smart Money Inflow")
+                        reasons.append("High Volume Accumulation")
                     else: score -= 10
 
                 else: # Strong Formula
-                    ma20 = close.rolling(window=20, min_periods=1).mean().iloc[-1]
-                    ma50 = close.rolling(window=50, min_periods=1).mean().iloc[-1]
+                    ma20 = close_hist.rolling(window=20).mean().iloc[-1]
+                    ma50 = close_hist.rolling(window=50).mean().iloc[-1]
                     if cur_p > ma20 > ma50:
                         score += 20
-                        reasons.append("Solid Momentum")
+                        reasons.append("Strong Price Action")
                     
-                    rsi = self.calculate_rsi(close).iloc[-1]
-                    if 45 < rsi < 70: 
+                    rsi = self.calculate_rsi(close_hist).iloc[-1]
+                    if 40 < rsi < 70: 
                         score += 20
-                        reasons.append("Optimal Entry Zone")
+                        reasons.append("Healthy RSI Structure")
 
                 return {'ticker': ticker, 'score': score, 'current_price': cur_p, 'reasons': reasons}
             except:
