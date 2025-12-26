@@ -1314,17 +1314,18 @@ elif page == "🤖 Paper Trading Simulator":
 
                     # B. Check Entries
                     if top_scalps:
-                        best_pick = top_scalps[0]
-                        ticker = best_pick['ticker']
-                        price = best_pick['price']
-                        score = best_pick['score']
-                        
-                        # Buy Condition: Score > 50 
-                        if score >= 50:
-                            success, msg = trader.buy(ticker, price)
-                            if success:
-                                play_alert_sound()
-                                st.toast(msg, icon="🛍️")
+                        # Attempt to buy any valid setup found (Top 5)
+                        for pick in top_scalps:
+                            ticker = pick['ticker']
+                            price = pick['price']
+                            score = pick['score']
+                            
+                            # Buy Condition: Score > 50 
+                            if score >= 50:
+                                success, msg = trader.buy(ticker, price)
+                                if success:
+                                    play_alert_sound()
+                                    st.toast(msg, icon="🛍️")
                     
                     # Display Status
                     if top_scalps:
