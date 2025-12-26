@@ -6,7 +6,7 @@ import json
 import os
 
 class PaperTrader:
-    def __init__(self, initial_balance=50000.0):
+    def __init__(self, initial_balance=10000.0):
         self.state_file = "paper_trader_state.json"
         self.initial_balance = initial_balance
         self.cash = initial_balance
