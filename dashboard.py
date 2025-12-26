@@ -964,58 +964,37 @@ elif page == "🔍 Deep Analyzer":
     
     ticker_input = "RELIANCE.NS" # Default
     with sc2:
-        st.write("**🔍 Search Stock**")
-        
-        # Add "Search Online" option to the list
-        search_options = ["🌐 Search online for any stock..."] + TICKER_OPTIONS
-        
-        selected = st.selectbox(
-            "Search Ticker or Company Name",
-            search_options,
-            key="master_search",
+        st.write("**🔍 Search Stock (Symbol or Company Name)**")
+        search_query = st.text_input(
+            "Search",
+            placeholder="e.g. RELIANCE, TCS, Elitecon...",
+            key="smart_search_input",
             label_visibility="collapsed"
-        )
-        
-        # If user selects online search, show text input with live results
-        if selected == "🌐 Search online for any stock...":
-            search_query = st.text_input(
-                "Type stock name or symbol",
-                placeholder="e.g., Elitecon, Reliance, TCS...",
-                key="online_search_input",
-                label_visibility="collapsed"
-            ).strip()
+        ).strip()
+
+        if search_query:
+            # 1. Try local match first (Autocomplete simulation)
+            local_match = None
+            for opt in TICKER_OPTIONS:
+                if search_query.upper() in opt.upper():
+                    local_match = opt.split(' - ')[0]
+                    break
             
-            if search_query and len(search_query) >= 2:
-                with st.spinner("Searching Yahoo Finance..."):
+            if local_match:
+                suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
+                ticker_input = f"{local_match}{suffix}"
+            else:
+                # 2. Fallback to Online Search if not in local list
+                with st.spinner(f"Searching online for '{search_query}'..."):
                     online_results = search_yahoo_finance(search_query)
-                
-                if online_results:
-                    # Show results in a selectbox
-                    result_options = [f"{r['symbol']} - {r['name']} ({r['exchange']})" for r in online_results]
-                    selected_result = st.selectbox(
-                        "Select from results",
-                        result_options,
-                        key="online_result_select",
-                        label_visibility="collapsed"
-                    )
-                    
-                    if selected_result:
-                        sym = selected_result.split(' - ')[0]
-                        # Extract exchange from result
-                        if '(NSE)' in selected_result:
-                            ticker_input = f"{sym}.NS"
-                        elif '(BSE)' in selected_result:
-                            ticker_input = f"{sym}.BO"
-                        else:
-                            suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
-                            ticker_input = f"{sym}{suffix}"
-                        st.markdown(f"<html><head><title>Analyzing {sym} | Stock Analysis Pro</title></head></html>", unsafe_allow_html=True)
-        else:
-            # Regular selection from list
-            sym = selected.split(' - ')[0]
-            suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
-            ticker_input = f"{sym}{suffix}"
-            st.markdown(f"<html><head><title>Analyzing {sym} | Stock Analysis Pro</title></head></html>", unsafe_allow_html=True)
+                    if online_results:
+                        top_res = online_results[0]
+                        ticker_input = f"{top_res['symbol']}.{'NS' if top_res['exchange'] == 'NSE' else 'BO'}"
+                        st.caption(f"✅ Found: **{top_res['name']}** ({ticker_input})")
+                    else:
+                        ticker_input = f"{search_query.upper()}.{'NS' if st.session_state.get('exchange', 'NSE') == 'NSE' else 'BO'}"
+            
+            st.markdown(f"<html><head><title>Analyzing {ticker_input} | Stock Analysis Pro</title></head></html>", unsafe_allow_html=True)
 
     # 2. Period Selection Row
 
