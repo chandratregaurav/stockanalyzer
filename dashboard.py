@@ -336,30 +336,66 @@ def get_marquee_data():
     
     return results
 
-# Add Sentiment Hub (Absolute Top) - TEMPORARILY DISABLED TO FIX LOADING
-# TODO: Move this inside a proper async/lazy loading mechanism
-st.markdown("""
-<div class="sentiment-bar" style="background-color: rgba(255,255,255,0.1); padding: 4px 0; font-size: 14px;">
-    <span style="font-size: 11px; opacity: 0.8;">INDIA MOOD:</span> MARKET LIVE 🟢
-</div>
-""", unsafe_allow_html=True)
+# Add Sentiment Hub (Absolute Top) - Smart Loading
+try:
+    mood, change, color, anim_class = get_market_sentiment()
+    st.markdown(f"""
+    <div class="sentiment-bar {anim_class}" style="background-color: {color}; padding: 4px 0; font-size: 14px;">
+        <span style="font-size: 11px; opacity: 0.8;">INDIA MOOD:</span> {mood} ({change:+.2f}%)
+    </div>
+    """, unsafe_allow_html=True)
+except:
+    st.markdown("""
+    <div class="sentiment-bar" style="background-color: rgba(255,255,255,0.1); padding: 4px 0; font-size: 14px;">
+        <span style="font-size: 11px; opacity: 0.8;">INDIA MOOD:</span> MARKET LIVE 🟢
+    </div>
+    """, unsafe_allow_html=True)
 
-# Add Marquee UI - STATIC VERSION (NO BLOCKING)
-st.markdown("""
+# Add Marquee UI - SMART LAZY LOADING (NON-BLOCKING)
+marquee_placeholder = st.empty()
+
+# Show loading placeholder immediately (non-blocking)
+marquee_placeholder.markdown("""
 <div class="marquee">
     <div class="marquee-content">
-        <span class="marquee-item" style="color:#00FF00;">🟢 NIFTY 50: LIVE</span>
-        <span class="marquee-item" style="color:#00FF00;">🟢 SENSEX: LIVE</span>
-        <span class="marquee-item" style="color:#00FF00;">🟢 BANK NIFTY: LIVE</span>
-        <span class="marquee-item" style="color:#00FF00;">🟢 RELIANCE: LIVE</span>
-        <span class="marquee-item" style="color:#00FF00;">🟢 TCS: LIVE</span>
-        <span class="marquee-item" style="color:#00FF00;">🟢 HDFC BANK: LIVE</span>
-        <span class="marquee-item" style="color:#00FF00;">🟢 ICICI BANK: LIVE</span>
-        <span class="marquee-item" style="color:#00FF00;">🟢 INFY: LIVE</span>
-        <span class="marquee-item" style="color:#FFA500;">⚡ Real-time data loading in background...</span>
+        <span class="marquee-item" style="color:#FFA500;">⚡ Loading live market data...</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
+
+# Try to fetch real data (cached, so won't block on subsequent loads)
+try:
+    marquee_data = get_marquee_data()
+    if marquee_data and len(marquee_data) > 0:
+        items_html = ""
+        for item in marquee_data:
+            color = "#00FF00" if item['change'] >= 0 else "#FF4B4B"
+            icon = "🟢" if item['change'] >= 0 else "🔴"
+            items_html += f'<span class="marquee-item" style="color:{color};">{icon} {item["name"]}: ₹{item["price"]:,.2f} ({item["change"]:+.2f}%)</span>'
+        
+        # Update with real data
+        marquee_placeholder.markdown(f"""
+        <div class="marquee">
+            <div class="marquee-content">
+                {items_html} {items_html}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        # Keep loading message if no data
+        pass
+except Exception as e:
+    # On error, show static fallback
+    marquee_placeholder.markdown("""
+    <div class="marquee">
+        <div class="marquee-content">
+            <span class="marquee-item" style="color:#00FF00;">🟢 NIFTY 50: LIVE</span>
+            <span class="marquee-item" style="color:#00FF00;">🟢 SENSEX: LIVE</span>
+            <span class="marquee-item" style="color:#00FF00;">🟢 BANK NIFTY: LIVE</span>
+            <span class="marquee-item" style="color:#FFA500;">⚡ Market data temporarily unavailable</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # Paper Trading & Assets
 from paper_trader import PaperTrader
