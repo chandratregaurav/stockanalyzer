@@ -5,6 +5,17 @@ from datetime import timedelta, date
 from sklearn.linear_model import LinearRegression
 import numpy as np
 
+# Try to import heavy ML libraries at module level for better performance
+try:
+    from sklearn.ensemble import RandomForestRegressor
+except ImportError:
+    RandomForestRegressor = None
+
+try:
+    from xgboost import XGBRegressor
+except ImportError:
+    XGBRegressor = None
+
 class StockAnalyzer:
     def __init__(self, ticker):
         self.ticker = ticker
@@ -169,7 +180,9 @@ class StockAnalyzer:
 
         # --- STRATEGY 2: Random Forest AI ---
         elif model_type == 'Random Forest AI':
-            from sklearn.ensemble import RandomForestRegressor
+            if RandomForestRegressor is None:
+                print("Random Forest not available.")
+                return None
             
             # Features
             df['Lag_1'] = df['Close'].shift(1)
@@ -184,7 +197,7 @@ class StockAnalyzer:
             X = df[['Lag_1', 'Lag_2', 'Lag_5', 'MA_10', 'MA_20']].values
             y = df['Close'].values
             
-            model = RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42)
+            model = RandomForestRegressor(n_estimators=30, max_depth=8, random_state=42)
             model.fit(X, y)
             
             # Recursive Forecast
@@ -247,9 +260,7 @@ class StockAnalyzer:
 
         # --- STRATEGY 4: XGBoost AI ---
         elif model_type == 'XGBoost AI (Gradient Boosting)':
-            try:
-                from xgboost import XGBRegressor
-            except ImportError:
+            if XGBRegressor is None:
                 print("XGBoost not installed.")
                 return None
                 
@@ -261,10 +272,13 @@ class StockAnalyzer:
             df['MA_20'] = df['Close'].rolling(window=20).mean()
             df = df.dropna()
             
+            if df.empty: return None
+            
             X = df[['Lag_1', 'Lag_2', 'Lag_5', 'MA_10', 'MA_20']].values
             y = df['Close'].values
             
-            model = XGBRegressor(n_estimators=100, learning_rate=0.1, max_depth=5, random_state=42)
+            # Optimized for speed: fewer estimators, faster training
+            model = XGBRegressor(n_estimators=30, learning_rate=0.1, max_depth=4, random_state=42)
             model.fit(X, y)
             
             history_buffer = list(df['Close'].values[-20:])
