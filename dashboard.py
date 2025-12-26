@@ -864,6 +864,15 @@ elif page == "💎 Potential Multibaggers":
             help="Choose the screening logic used to find potential 10x stocks."
         )
     
+    # Strategy Descriptions
+    strat_info = {
+        "Strong Formula (Default)": "🛡️ **Balanced Momentum**: Finds stocks in healthy uptrends with stable RSI (40-70). Best for steady growers with lower volatility.",
+        "CAN SLIM (William O'Neil)": "🏆 **Institutional Power**: Focuses on high-quality leaders hitting new 52-week highs with massive fund support. The 'Gold Standard' for multibaggers.",
+        "Minervini Trend Template": "📉 **Stage-2 Verification**: Uses strict multi-level moving average alignment to ensure the stock is in its prime growth phase.",
+        "Low-Cap Moonshot (Beta)": "🚀 **Volume Breakouts**: Scouts for massive volume spikes in smaller stocks. High risk, but identifies early institutional accumulation."
+    }
+    st.info(strat_info[selected_strat])
+    
     with strat_col3:
         st.write("") # Spacer
         if st.button("🚀 Run Strategy Scan", type="primary", use_container_width=True):
