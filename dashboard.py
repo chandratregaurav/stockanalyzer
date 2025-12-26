@@ -49,8 +49,8 @@ st.markdown("""
         "priceCurrency": "INR"
       },
       "author": {
-        "@type": "Person",
-        "name": "Gaurav Chandratre"
+        "@type": "Organization",
+        "name": "StockPro Quant Team"
       }
     }
     </script>
