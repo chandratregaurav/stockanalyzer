@@ -360,10 +360,9 @@ except ImportError:
 def render_ad_space():
     """Placeholder for premium advertisements/sponsor banners."""
     st.markdown("""
-    <div style="background: linear-gradient(90deg, #1e1e1e, #2d2d2d); padding: 12px; border-radius: 10px; border: 1px dashed rgba(0, 255, 0, 0.2); text-align: center; margin-bottom: 15px;">
-        <div style="font-size: 9px; color: #00FF00; opacity: 0.6; text-transform: uppercase; margin-bottom: 2px;">👑 Sponsored Collaboration</div>
-        <div style="font-size: 15px; font-weight: bold; color: #FFF;">Your Brand Name & Promotion Here</div>
-        <div style="font-size: 11px; opacity: 0.8; margin-top: 2px;">Reach 10,000+ active traders daily with premium placement.</div>
+    <div style="background: rgba(0, 255, 0, 0.05); padding: 5px; border-radius: 5px; border: 1px dashed rgba(0, 255, 0, 0.2); text-align: center; margin-top: 10px;">
+        <div style="font-size: 8px; color: #00FF00; opacity: 0.6; text-transform: uppercase;">👑 Sponsored</div>
+        <div style="font-size: 12px; font-weight: bold; color: #FFF;">Your Brand Here</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -495,7 +494,8 @@ def render_share_buttons(ticker, price, change, type="analysis"):
     </div>
     """, unsafe_allow_html=True)
 
-st.title("📈 Stock Analysis & Projection")
+# Removed global title to save space
+# st.title("📈 Stock Analysis & Projection")
 
 # --- Constants ---
 @st.cache_data
@@ -600,6 +600,11 @@ with st.sidebar:
 
     st.divider()
     
+    # Sponsored Space in Sidebar
+    render_ad_space()
+    
+    st.divider()
+    
     # Footfall Badge
     total_visits = get_footfall()
     st.markdown(f"""
@@ -648,15 +653,14 @@ if 'page_target' in st.session_state:
     del st.session_state['page_target']
 
 if page == "Home":
-    render_ad_space()
-    st.markdown("## 🏛️ Professional Trading Hub")
+    st.markdown("#### 🏛️ Professional Trading Hub")
     
     # 1. Market Status Bar
     is_open, status_msg = is_market_open()
     st.info(f"📅 **Status:** {status_msg}")
 
     # --- 2. 🌟 Market Stars Section ---
-    st.markdown("### 🌟 Market Leaders")
+    st.markdown("##### 🌟 Market Leaders")
     
     day_stars = []
     month_stars = []
@@ -699,10 +703,10 @@ if page == "Home":
             day_stars, month_stars = screener.get_market_stars()
             
     if loaded_from_cache:
-        st.caption(f"⚡ Data Source: {data_source} • Auto-refreshes every 10 mins via background job")
+        st.caption(f"⚡ Data: {data_source}")
 
     # --- Line 1: Stars of the Month (Compact 4-col) ---
-    st.markdown("#### 🏆 Leaderboard (Month / Day)")
+    st.markdown("**🏆 Leaderboard (Month / Day)**")
     m_cols = st.columns(4)
     
     # Show Top 4 Monthly leaders in 4 columns
