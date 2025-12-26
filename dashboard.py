@@ -89,11 +89,17 @@ st.markdown("""
     
     /* Reduce global vertical spacing */
     .block-container {
-        padding-top: 2rem !important;
-        padding-bottom: 2rem !important;
+        padding-top: 0.5rem !important;
+        padding-bottom: 1rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
     }
     h1, h2, h3, h4 {
-        margin-top: 5px !important;
+        margin-top: 2px !important;
+        margin-bottom: 2px !important;
+    }
+    .stAlert {
+        padding: 5px !important;
         margin-bottom: 5px !important;
     }
     /* Marquee Styling */
@@ -102,7 +108,7 @@ st.markdown("""
         overflow: hidden;
         white-space: nowrap;
         background: rgba(0,0,0,0.3);
-        padding: 10px 0;
+        padding: 4px 0;
         border-bottom: 1px solid rgba(255,255,255,0.1);
         position: relative;
     }
@@ -313,8 +319,8 @@ def get_marquee_data():
 # Add Sentiment Hub (Absolute Top)
 mood, change, color, anim_class = get_market_sentiment()
 st.markdown(f"""
-<div class="sentiment-bar {anim_class}" style="background-color: {color};">
-    <span style="font-size: 14px; opacity: 0.8;">INDIA MARKET MOOD:</span> {mood} ({change:+.2f}%)
+<div class="sentiment-bar {anim_class}" style="background-color: {color}; padding: 4px 0; font-size: 14px;">
+    <span style="font-size: 11px; opacity: 0.8;">INDIA MOOD:</span> {mood} ({change:+.2f}%)
 </div>
 """, unsafe_allow_html=True)
 
@@ -643,14 +649,14 @@ if 'page_target' in st.session_state:
 
 if page == "Home":
     render_ad_space()
-    st.title("🏛️ Professional Trading Hub")
+    st.markdown("## 🏛️ Professional Trading Hub")
     
     # 1. Market Status Bar
     is_open, status_msg = is_market_open()
     st.info(f"📅 **Status:** {status_msg}")
 
     # --- 2. 🌟 Market Stars Section ---
-    st.subheader("🌟 Market Leaders")
+    st.markdown("### 🌟 Market Leaders")
     
     day_stars = []
     month_stars = []
@@ -695,18 +701,18 @@ if page == "Home":
     if loaded_from_cache:
         st.caption(f"⚡ Data Source: {data_source} • Auto-refreshes every 10 mins via background job")
 
-    # --- Line 1: Stars of the Month (Compact 3-col) ---
-    st.markdown("#### 🏆 Leaderboard (Month/Day)")
-    m_cols = st.columns(3)
+    # --- Line 1: Stars of the Month (Compact 4-col) ---
+    st.markdown("#### 🏆 Leaderboard (Month / Day)")
+    m_cols = st.columns(4)
     
-    # Show Top 3 Monthly leaders in 3 columns
-    for i, star in enumerate(month_stars[:3]):
-        with m_cols[i % 3]:
+    # Show Top 4 Monthly leaders in 4 columns
+    for i, star in enumerate(month_stars[:4]):
+        with m_cols[i % 4]:
             st.markdown(f"""
-            <div style="background-color: rgba(255, 215, 0, 0.05); border: 1px solid rgba(255, 215, 0, 0.2); padding: 12px; border-radius: 10px; text-align: center;">
-                <div style="font-size: 10px; opacity: 0.7; text-transform: uppercase;">Star of the Month</div>
-                <div style="color: #FFD700; font-size: 18px; font-weight: bold; margin: 4px 0;">{star['ticker']}</div>
-                <div style="font-size: 15px; font-weight: bold;">{star['change']:+.2f}%</div>
+            <div style="background-color: rgba(255, 215, 0, 0.05); border: 1px solid rgba(255, 215, 0, 0.2); padding: 8px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 9px; opacity: 0.7; text-transform: uppercase;">Month Star</div>
+                <div style="color: #FFD700; font-size: 15px; font-weight: bold; margin: 2px 0;">{star['ticker']}</div>
+                <div style="font-size: 13px; font-weight: bold;">{star['change']:+.2f}%</div>
             </div>
             """, unsafe_allow_html=True)
             if st.button(f"Analyze {star['ticker']}", key=f"month_btn_{i}", use_container_width=True):
@@ -715,17 +721,15 @@ if page == "Home":
                  st.session_state['trigger_analyze'] = True
                  st.rerun()
 
-    st.write("") # Spacer
-    
-    # --- Line 2: Daily Breakouts (Compact 3-col) ---
-    d_cols = st.columns(3)
-    for i, star in enumerate(day_stars[:3]):
-        with d_cols[i % 3]:
+    # --- Line 2: Daily Breakouts (Compact 4-col) ---
+    d_cols = st.columns(4)
+    for i, star in enumerate(day_stars[:4]):
+        with d_cols[i % 4]:
             st.markdown(f"""
-            <div style="background-color: rgba(0, 255, 0, 0.05); border: 1px solid rgba(0, 255, 0, 0.2); padding: 12px; border-radius: 10px; text-align: center;">
-                <div style="font-size: 10px; opacity: 0.7; text-transform: uppercase;">Star of the Day</div>
-                <div style="color: #00FF00; font-size: 18px; font-weight: bold; margin: 4px 0;">{star['ticker']}</div>
-                <div style="font-size: 15px; font-weight: bold;">{star['change']:+.2f}%</div>
+            <div style="background-color: rgba(0, 255, 0, 0.05); border: 1px solid rgba(0, 255, 0, 0.2); padding: 8px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 9px; opacity: 0.7; text-transform: uppercase;">Day Star</div>
+                <div style="color: #00FF00; font-size: 15px; font-weight: bold; margin: 2px 0;">{star['ticker']}</div>
+                <div style="font-size: 13px; font-weight: bold;">{star['change']:+.2f}%</div>
             </div>
             """, unsafe_allow_html=True)
             if st.button(f"Analyze {star['ticker']}", key=f"day_btn_{i}", use_container_width=True):
