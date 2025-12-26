@@ -115,9 +115,9 @@ class PaperTrader:
 
     def check_auto_exit(self, current_prices):
         """
-        Auto-Sell logic (Professional Risk Management):
-        - Target: Take Profit at +1.5% Gain
-        - Stop Loss: Cut Loss at -0.75% Loss
+        Auto-Sell logic (Rapid Scalping):
+        - Target: Take Profit at +0.80% Gain (Realistic for Large Caps)
+        - Stop Loss: Cut Loss at -0.40% Loss
         - Risk:Reward Ratio: 1:2
         """
         exits = []
@@ -134,13 +134,13 @@ class PaperTrader:
             pct_change = ((current_price - entry_price) / entry_price) * 100
             abs_profit = (current_price - entry_price) * pos['qty']
             
-            # Target Rule: +1.5% Scalp Target
-            if pct_change >= 1.5:
+            # Target Rule: +0.8% Scalp Target (Quick Profits)
+            if pct_change >= 0.80:
                  success, msg = self.sell(ticker, current_price, reason=f"Target +{pct_change:.2f}% (₹{abs_profit:.0f}) 🎯")
                  if success: exits.append(msg)
             
-            # Stop Rule: -0.75% Hard Stop
-            elif pct_change <= -0.75:
+            # Stop Rule: -0.4% Tight Stop
+            elif pct_change <= -0.40:
                  success, msg = self.sell(ticker, current_price, reason=f"Stop {pct_change:.2f}% (₹{abs_profit:.0f}) 🛑")
                  if success: exits.append(msg)
                  

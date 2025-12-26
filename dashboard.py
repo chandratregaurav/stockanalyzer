@@ -1214,8 +1214,8 @@ elif page == "🤖 Paper Trading Simulator":
     <div style="background: rgba(0, 255, 0, 0.05); padding: 15px; border-radius: 10px; border: 1px solid rgba(0, 255, 0, 0.2);">
         <strong>💼 Virtual Portfolio (₹50,000 Capital)</strong><br>
         This bot autonomously scans for <strong>Momentum Breakouts</strong> & <strong>Volume Bursts</strong>.
-        <br>It executes a <strong>Professional Scalping Strategy</strong>:
-        <br>🎯 <strong>Target:</strong> +1.5% Gain | 🛑 <strong>Stop Loss:</strong> -0.75% Loss (2:1 Ratio)
+        <br>It executes a <strong>Rapid Scalping Strategy</strong>:
+        <br>🎯 <strong>Target:</strong> +0.80% Gain | 🛑 <strong>Stop Loss:</strong> -0.40% Loss (2:1 Ratio)
     </div>
     """, unsafe_allow_html=True)
     st.write("")
@@ -1360,6 +1360,17 @@ elif page == "🤖 Paper Trading Simulator":
                 st.info("No trades executed yet.")
             for log in trader.trade_log:
                 st.text(log)
+
+    st.divider()
+    if st.button("🧹 Reset Simulator (Clear History)", help="Wipes all trade history and resets capital to ₹50,000."):
+        trader.cash = 50000.0
+        trader.positions = {}
+        trader.trade_log = []
+        trader.total_profit = 0.0
+        trader.equity_history = [{"ts": datetime.now().strftime('%Y-%m-%d %H:%M:%S'), "value": 50000.0}]
+        trader.save_state()
+        st.success("Simulator Reset Successfully!")
+        st.rerun()
 
 
 
