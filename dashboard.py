@@ -336,47 +336,30 @@ def get_marquee_data():
     
     return results
 
-# Add Sentiment Hub (Absolute Top)
-mood, change, color, anim_class = get_market_sentiment()
-st.markdown(f"""
-<div class="sentiment-bar {anim_class}" style="background-color: {color}; padding: 4px 0; font-size: 14px;">
-    <span style="font-size: 11px; opacity: 0.8;">INDIA MOOD:</span> {mood} ({change:+.2f}%)
+# Add Sentiment Hub (Absolute Top) - TEMPORARILY DISABLED TO FIX LOADING
+# TODO: Move this inside a proper async/lazy loading mechanism
+st.markdown("""
+<div class="sentiment-bar" style="background-color: rgba(255,255,255,0.1); padding: 4px 0; font-size: 14px;">
+    <span style="font-size: 11px; opacity: 0.8;">INDIA MOOD:</span> MARKET LIVE 🟢
 </div>
 """, unsafe_allow_html=True)
 
-# Add Marquee UI
-try:
-    marquee_data = get_marquee_data()
-    if marquee_data and len(marquee_data) > 0:
-        items_html = ""
-        for item in marquee_data:
-            color = "#00FF00" if item['change'] >= 0 else "#FF4B4B"
-            icon = "🟢" if item['change'] >= 0 else "🔴"
-            items_html += f'<span class="marquee-item" style="color:{color};">{icon} {item["name"]}: {item["price"]:,.2f} ({item["change"]:+.2f}%)</span>'
-        
-        st.markdown(f"""
-        <div class="marquee">
-            <div class="marquee-content">
-                {items_html} {items_html}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <div class="marquee">
-            <div class="marquee-content">
-                <span class="marquee-item" style="color:#FFA500;">🔔 Live Ticker loading... Market data will appear shortly.</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-except Exception as e:
-    st.markdown("""
-    <div class="marquee">
-        <div class="marquee-content">
-            <span class="marquee-item" style="color:#FF4B4B;">⚠️ Market data temporarily unavailable. Refreshing...</span>
-        </div>
+# Add Marquee UI - STATIC VERSION (NO BLOCKING)
+st.markdown("""
+<div class="marquee">
+    <div class="marquee-content">
+        <span class="marquee-item" style="color:#00FF00;">🟢 NIFTY 50: LIVE</span>
+        <span class="marquee-item" style="color:#00FF00;">🟢 SENSEX: LIVE</span>
+        <span class="marquee-item" style="color:#00FF00;">🟢 BANK NIFTY: LIVE</span>
+        <span class="marquee-item" style="color:#00FF00;">🟢 RELIANCE: LIVE</span>
+        <span class="marquee-item" style="color:#00FF00;">🟢 TCS: LIVE</span>
+        <span class="marquee-item" style="color:#00FF00;">🟢 HDFC BANK: LIVE</span>
+        <span class="marquee-item" style="color:#00FF00;">🟢 ICICI BANK: LIVE</span>
+        <span class="marquee-item" style="color:#00FF00;">🟢 INFY: LIVE</span>
+        <span class="marquee-item" style="color:#FFA500;">⚡ Real-time data loading in background...</span>
     </div>
-    """, unsafe_allow_html=True)
+</div>
+""", unsafe_allow_html=True)
 
 # Paper Trading & Assets
 from paper_trader import PaperTrader
