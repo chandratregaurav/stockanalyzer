@@ -962,6 +962,7 @@ elif page == "🔍 Deep Analyzer":
         # Ensure exchange variable stays in sync with radio
         st.session_state['exchange'] = st.session_state['exchange_radio']
     
+    ticker_input = "RELIANCE.NS" # Default
     with sc2:
         st.write("**🔍 Search Stock**")
         
@@ -1022,8 +1023,6 @@ elif page == "🔍 Deep Analyzer":
             suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
             ticker_input = f"{sym}{suffix}"
             st.markdown(f"<html><head><title>Analyzing {sym} | Stock Analysis Pro</title></head></html>", unsafe_allow_html=True)
-    else:
-        ticker_input = "RELIANCE.NS"
 
     # 2. Period Selection Row
 
