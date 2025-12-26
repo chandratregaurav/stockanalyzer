@@ -663,6 +663,10 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
 
+# --- Navigation Helper ---
+def trigger_analysis():
+    st.session_state['trigger_analyze'] = True
+
 page = st.session_state['current_page']
 
 # Cleanup target
@@ -858,9 +862,6 @@ elif page == "💎 Potential Multibaggers":
     else:
         st.write("Click the button above to start the professional-grade scan.")
 
-# --- Navigation Helper ---
-def trigger_analysis():
-    st.session_state['trigger_analyze'] = True
 
 elif page == "🔍 Deep Analyzer":
     render_ad_space()
@@ -944,22 +945,16 @@ elif page == "🔍 Deep Analyzer":
             </div>
             """, unsafe_allow_html=True)
 
-    # Period Logic - Optimized for 1Y Minimum + 5Y Support
+    # Period Logic - Dynamic for Chart, persistent for AI
     end_date = date.today()
-    interval_code = "1d"
-    
-    if period_preset in ["1D", "1W", "1M", "1Y"]:
-        start_date = end_date - timedelta(days=365) # Minimum 1 Year
-    elif period_preset == "5Y":
-        start_date = end_date - timedelta(days=365*5)
+    if period_preset == "1D": start_date, interval_code = end_date - timedelta(days=2), "5m"
+    elif period_preset == "1W": start_date, interval_code = end_date - timedelta(days=7), "1h"
+    elif period_preset == "1M": start_date, interval_code = end_date - timedelta(days=30), "1d"
+    elif period_preset == "1Y": start_date, interval_code = end_date - timedelta(days=365), "1d"
+    elif period_preset == "5Y": start_date, interval_code = end_date - timedelta(days=365*5), "1wk"
     elif period_preset == "Custom":
-        # Ensure at least 1 year even for custom for prediction stability
-        t_start = s_date
-        if (end_date - t_start).days < 365:
-            start_date = end_date - timedelta(days=365)
-        else:
-            start_date = t_start
-        st.info("Note: Deep Analyzer always uses 1 Year of historical data for reliable AI forecasting.")
+        start_date, end_date = s_date, e_date
+        interval_code = "1h" if "Hourly" in i_choice else ("5m" if "5-Min" in i_choice else "1d")
 
     # Generate Button
     auto_click = False
@@ -970,13 +965,24 @@ elif page == "🔍 Deep Analyzer":
     if st.button("🚀 Run Analysis & Forecast", type="primary", use_container_width=True) or auto_click:
         with st.spinner(f"Fetching data for {ticker_input}..."):
             analyzer = StockAnalyzer(ticker_input)
+            # 1. Main Fetch for Chart
             success = analyzer.fetch_data(start=start_date, end=end_date, interval=interval_code)
-            analyzer.fetch_fundamentals()
-            analyzer.get_news()
             
-            if success and analyzer.data is not None and not analyzer.data.empty:
+            # 2. Background Fetch for AI (Always at least 1Y Daily)
+            if success:
+                ai_analyzer = StockAnalyzer(ticker_input)
+                # Determine how far back to go for AI (Max of 1Y or requested 5Y)
+                ai_days = 365 if period_preset != "5Y" else (365*5)
+                ai_start = end_date - timedelta(days=ai_days)
+                ai_analyzer.fetch_data(start=ai_start, end=end_date, interval='1d')
+                
+                # Fetch balance
+                analyzer.fetch_fundamentals()
+                analyzer.get_news()
+                
                 st.session_state['data'] = analyzer.data
                 st.session_state['analyzer'] = analyzer
+                st.session_state['ai_analyzer'] = ai_analyzer
                 st.session_state['ticker'] = ticker_input
                 st.success("Analysis Complete!")
             else:
@@ -1101,7 +1107,9 @@ elif page == "🔍 Deep Analyzer":
         )
 
         with st.spinner(f"Running {model_choice} simulation for {horizon} days..."):
-            forecast_data = analyzer.generate_forecast(days=horizon, model_type=model_choice)
+            # Use the AI-specific daily analyzer for forecasting
+            ai_engine = st.session_state.get('ai_analyzer', analyzer)
+            forecast_data = ai_engine.generate_forecast(days=horizon, model_type=model_choice)
         
         if forecast_data:
             # Badge for Strategy
