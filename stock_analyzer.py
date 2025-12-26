@@ -142,9 +142,9 @@ class StockAnalyzer:
                 mu_short = df['Log_Ret'].tail(short_window).mean()
             else:
                 mu_short = mu_long
-            # Weighted Drift: Heavy biased towards recent momentum (90%)
-            # This ensures the projection follows the immediate trend, solving the "flat line" issue
-            mu = (0.9 * mu_short) + (0.1 * mu_long)
+            # Weighted Drift: Balanced approach (50% Recent Momentum, 50% Annual Trend)
+            # This reduces "recency bias" while still acknowledging immediate price direction
+            mu = (0.5 * mu_short) + (0.5 * mu_long)
             
             # Simulation
             simulation_runs = 1000
