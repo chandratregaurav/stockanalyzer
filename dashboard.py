@@ -277,80 +277,29 @@ def get_market_sentiment():
     except Exception as e:
         return "MARKET DATA UNAVAILABLE", 0, "rgba(255,255,255,0.1)", ""
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=120)
 def get_marquee_data():
-    """Fetches live prices for major indices and main Nifty 50 stocks for the marquee."""
+    """Fetches real-time prices for marquee indices and stocks."""
     symbols = {
-        "^NSEI": "NIFTY 50",
-        "^BSESN": "SENSEX",
-        "^NSEBANK": "BANK NIFTY",
-        "RELIANCE.NS": "RELIANCE",
-        "HDFCBANK.NS": "HDFC BANK",
-        "ICICIBANK.NS": "ICICI BANK",
-        "TCS.NS": "TCS",
-        "INFY.NS": "INFY",
-        "SBIN.NS": "SBI",
-        "BHARTIARTL.NS": "BHARTI AIRTEL",
-        "ITC.NS": "ITC",
-        "LICI.NS": "LIC",
-        "TATAMOTORS.NS": "TATA MOTORS",
-        "AXISBANK.NS": "AXIS BANK",
-        "KOTAKBANK.NS": "KOTAK BANK",
-        "LT.NS": "L&T",
-        "BAJFINANCE.NS": "BAJAJ FINANCE",
-        "MARUTI.NS": "MARUTI",
-        "SUNPHARMA.NS": "SUN PHARMA",
-        "TITAN.NS": "TITAN",
-        "HINDUNILVR.NS": "HUL",
-        "ADANIPORTS.NS": "ADANI PORTS",
-        "ASIANPAINT.NS": "ASIAN PAINT",
-        "ONGC.NS": "ONGC",
-        "M&M.NS": "M&M",
-        "TATASTEEL.NS": "TATA STEEL",
-        "HCLTECH.NS": "HCL TECH",
-        "ADANIENT.NS": "ADANI ENT",
-        "WIPRO.NS": "WIPRO",
-        "JSWSTEEL.NS": "JSW STEEL",
-        "NTPC.NS": "NTPC",
-        "POWERGRID.NS": "POWER GRID",
-        "ULTRACEMCO.NS": "ULTRACEMCO",
-        "HINDALCO.NS": "HINDALCO",
-        "NESTLEIND.NS": "NESTLE",
-        "GRASIM.NS": "GRASIM",
-        "BAJAJ-AUTO.NS": "BAJAJ AUTO",
-        "COALINDIA.NS": "COAL INDIA",
-        "BPCL.NS": "BPCL",
-        "APOLLOHOSP.NS": "APOLLO HOSP",
-        "TECHM.NS": "TECH MAHINDRA",
-        "CIPLA.NS": "CIPLA",
-        "DRREDDY.NS": "DR REDDY"
+        "^NSEI": "NIFTY 50", "^BSESN": "SENSEX", "^NSEBANK": "BANK NIFTY",
+        "RELIANCE.NS": "RELIANCE", "HDFCBANK.NS": "HDFC BANK", "ICICIBANK.NS": "ICICI BANK",
+        "TCS.NS": "TCS", "INFY.NS": "INFY", "SBIN.NS": "SBI", "BHARTIARTL.NS": "AIRTEL"
     }
     results = []
     try:
-        data = yf.download(list(symbols.keys()), period="2d", group_by='ticker', progress=False)
+        # Batch download for speed
+        data = yf.download(list(symbols.keys()), period="5d", interval="1d", group_by='ticker', progress=False)
         for sym, name in symbols.items():
             try:
-                if isinstance(data.columns, pd.MultiIndex):
-                    if sym in data.columns.levels[0]:
-                        df = data[sym]
-                    else: continue
-                else:
-                    df = data
-                
+                df = data[sym] if len(symbols) > 1 else data
                 df = df.dropna(subset=['Close'])
-                if len(df) >= 2:
-                    last_price = df['Close'].iloc[-1]
-                    prev_close = df['Close'].iloc[-2]
-                    change = ((last_price - prev_close) / prev_close) * 100
-                    results.append({
-                        "name": name,
-                        "price": last_price,
-                        "change": change
-                    })
-            except:
-                continue
-    except:
-        pass
+                if not df.empty:
+                    lp = df['Close'].iloc[-1]
+                    prev = df['Close'].iloc[-2] if len(df) > 1 else lp
+                    chg = ((lp - prev) / prev) * 100 if prev != 0 else 0
+                    results.append({"name": name, "price": lp, "change": chg})
+            except: continue
+    except: pass
     return results
 
 # Add Sentiment Hub (Absolute Top)
@@ -378,20 +327,10 @@ if marquee_data:
     </div>
     """, unsafe_allow_html=True)
 else:
-    # Fallback to static if fetching fails
     st.markdown("""
     <div class="marquee">
         <div class="marquee-content">
-            <span class="marquee-item" style="color:#00FF00;">🟢 NIFTY 50: 24,120 (+0.8%)</span>
-            <span class="marquee-item" style="color:#00FF00;">🟢 SENSEX: 79,230 (+0.75%)</span>
-            <span class="marquee-item" style="color:#FF4B4B;">🔴 BANK NIFTY: 51,450 (-0.2%)</span>
-            <span class="marquee-item" style="color:#00FF00;">🟢 RELIANCE: 2,980 (+1.2%)</span>
-            <span class="marquee-item" style="color:#00FF00;">🟢 TCS: 3,920 (+0.95%)</span>
-            <span class="marquee-item" style="color:#FF4B4B;">🔴 INFY: 1,840 (-0.4%)</span>
-            <span class="marquee-item" style="color:#00FF00;">🟢 HDFC BANK: 1,650 (+0.5%)</span>
-            <span class="marquee-item" style="color:#00FF00;">🟢 ICICI BANK: 1,120 (+1.1%)</span>
-            <span class="marquee-item" style="color:#FF4B4B;">🔴 SBI: 820 (-0.3%)</span>
-            <span class="marquee-item" style="color:#00FF00;">🟢 BHARTI AIRTEL: 1,450 (+0.8%)</span>
+            <span class="marquee-item" style="color:#FFA500;">🔔 Live Ticker initializing... syncing with NSE/BSE feeds.</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
