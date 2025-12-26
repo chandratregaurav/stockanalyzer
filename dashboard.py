@@ -500,11 +500,15 @@ if 'trader' not in st.session_state:
 def start_bot_service():
     """Starts the bot as a background thread that stays alive with the app."""
     try:
-        from background_bot import run_bot
+        import importlib
+        import background_bot
+        # Force reload to pick up code changes on Streamlit Cloud
+        importlib.reload(background_bot)
+        
         # Start in a daemon thread so it dies when the main process dies
-        thread = threading.Thread(target=run_bot, daemon=True)
+        thread = threading.Thread(target=background_bot.run_bot, daemon=True)
         thread.start()
-        return f"Service started at {datetime.now()}"
+        return f"Service v{getattr(background_bot, 'BOT_VERSION', '1.0')} started at {datetime.now()}"
     except Exception as e:
         return f"Error starting service: {e}"
 
@@ -1487,26 +1491,43 @@ elif page == "🤖 Paper Trading Simulator":
     
     st.divider()
     
-    # Bot Status Monitor (Reads from background_bot.py)
-    bot_status = {"active": False, "msg": "Bot not detected", "last_run": "Never"}
+    # Bot Status Monitor (Synchronized with IST)
+    bot_status = {"active": False, "msg": "Bot not detected", "last_run": "Never", "version": "Unknown"}
     if os.path.exists("bot_status.json"):
         try:
             with open("bot_status.json", "r") as f:
                 bot_status = json.load(f)
         except: pass
+    
+    # Check if we are reading from an old UTC bot
+    is_old_bot = bot_status.get("version") != "2.1-IST-FIX"
 
-    if bot_status.get("active"):
+    if bot_status.get("active") and not is_old_bot:
         st.markdown(f"""
         <div style="background: rgba(0, 255, 0, 0.1); border: 1px solid rgba(0, 255, 0, 0.5); padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px;">
             <div style="color: #00FF00; font-weight: 800; font-size: 20px; letter-spacing: 1px;">🟢 AI BOT: {bot_status.get('msg', 'WORKING').upper()}</div>
-            <div style="font-size: 13px; color: #00FF00; opacity: 0.8; margin-top: 5px;">Last Update: {bot_status.get('last_run')} (Independent Background Service)</div>
+            <div style="font-size: 13px; color: #00FF00; opacity: 0.8; margin-top: 5px;">
+                Update: {bot_status.get('last_run')} IST | Version: {bot_status.get('version', 'Legacy')}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    elif is_old_bot:
+         st.markdown(f"""
+        <div style="background: rgba(255, 165, 0, 0.1); border: 1px solid rgba(255, 165, 0, 0.5); padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px;">
+            <div style="color: #FFA500; font-weight: 800; font-size: 20px; letter-spacing: 1px;">⚠️ OUTDATED BOT DETECTED</div>
+            <div style="font-size: 13px; color: #FFA500; opacity: 0.8; margin-top: 5px;">
+                The background service is still running an old UTC version ({bot_status.get('last_run')}).
+                <br>Please refresh the page or wait 60s for the new IST version to take over.
+            </div>
         </div>
         """, unsafe_allow_html=True)
     else:
         st.markdown(f"""
         <div style="background: rgba(255, 75, 75, 0.1); border: 1px solid rgba(255, 75, 75, 0.4); padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px;">
             <div style="color: #FF4B4B; font-weight: 800; font-size: 20px; letter-spacing: 1px;">💤 AI BOT: {bot_status.get('msg', 'SLEEPING').upper()}</div>
-            <div style="font-size: 13px; color: #FF4B4B; opacity: 0.8; margin-top: 5px;">Service Status: {bot_status.get('msg')} | Next trading session starts at 09:15 AM IST.</div>
+            <div style="font-size: 13px; color: #FF4B4B; opacity: 0.8; margin-top: 5px;">
+                Service Status: {bot_status.get('msg')} | Time: {bot_status.get('last_run')} IST
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
