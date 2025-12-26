@@ -14,7 +14,7 @@ from stock_analyzer import StockAnalyzer
 import threading
 
 # --- Page Configuration (MUST be first Streamlit command) ---
-st.set_page_config(page_title="Stock Analysis Pro | AI-Powered Indian Stock Screener & Multibagger Finder", layout="wide", page_icon="📈")
+st.set_page_config(page_title="StockPro AI v1.2", layout="wide", page_icon="📈")
 
 # SEO Meta Tags Integration (Hidden from UI)
 st.markdown("""
