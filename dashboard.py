@@ -321,7 +321,7 @@ def render_market_data_bar():
     # Fallback to Live Fetch for Pulse if data missing
     if not all(metrics.values()):
         try:
-            sym_map = {"^NSEI": "NIFTY 50", "^BSESN": "SENSEX", "^NSEBANK": "BANK NIFTY", "^NIFMD": "MIDCAP 100", "INDIAVIX.NS": "INDIA VIX"}
+            sym_map = {"^NSEI": "NIFTY 50", "^BSESN": "SENSEX", "^NSEBANK": "BANK NIFTY", "NIFTY_MIDCAP_100.NS": "MIDCAP 100", "^INDIAVIX": "INDIA VIX"}
             d = yf.download(list(sym_map.keys()), period="2d", progress=False)
             if not d.empty:
                 close_data = d['Close']
