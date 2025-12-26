@@ -920,7 +920,7 @@ elif page == "🔍 Deep Analyzer":
          period_preset = st.radio(
             "⏱️ Select Chart Period",
             ["1D", "1W", "1M", "1Y", "5Y", "Custom"],
-            index=2, # Default to 1M
+            index=3, # Default to 1Y as required
             horizontal=True
         )
     
@@ -937,17 +937,13 @@ elif page == "🔍 Deep Analyzer":
             </div>
             """, unsafe_allow_html=True)
 
-    # Period Logic
-    if period_preset != "Custom":
-        end_date = date.today()
-        if period_preset == "1D": start_date, interval_code = end_date - timedelta(days=2), "5m"
-        elif period_preset == "1W": start_date, interval_code = end_date - timedelta(days=7), "1h"
-        elif period_preset == "1M": start_date, interval_code = end_date - timedelta(days=30), "1d"
-        elif period_preset == "1Y": start_date, interval_code = end_date - timedelta(days=365), "1d"
-        elif period_preset == "5Y": start_date, interval_code = end_date - timedelta(days=365*5), "1wk"
-    else:
-        start_date, end_date = s_date, e_date
-        interval_code = "1h" if "Hourly" in i_choice else ("5m" if "5-Min" in i_choice else "1d")
+    # Period Logic - Always 1 Year for Deep Analyzer as requested
+    end_date = date.today()
+    start_date = end_date - timedelta(days=365)
+    interval_code = "1d"
+    
+    if period_preset == "Custom":
+        st.info("Note: Deep Analyzer always uses 1 Year of historical data for reliable AI forecasting.")
 
     # Generate Button
     auto_click = False
@@ -1076,17 +1072,9 @@ elif page == "🔍 Deep Analyzer":
         # 2. Projections (Updated for AI Models)
         st.subheader("🔮 AI Price Projections")
         
-        # Determine Prediction Horizon based on Data Quantity
-        data_points = len(df)
-        if data_points < 30: # ~1 Month
-            horizon = 10
-            st.info(f"📊 Short-term data detected ({data_points} candles). Generating 10-day forecast.")
-        elif data_points < 400: # ~1 Year
-            horizon = 60
-            st.info(f"📊 Medium-term data detected. Generating up to 60-day forecast.")
-        else: # > 1.5 Years
-            horizon = 120
-            st.info(f"📊 Long-term data detected. Generating extended 120-day forecast.")
+        # Fixed Horizon for Deep Analyzer
+        horizon = 180
+        st.info("📊 Generating comprehensive 180-day forecast with multi-timeframe projections.")
 
         # Model Selector
         model_choice = st.selectbox(
@@ -1137,13 +1125,45 @@ elif page == "🔍 Deep Analyzer":
                 line=dict(color='rgba(255, 255, 255, 0.5)', width=2)
             ))
             
-            # Projection Line
-            proj_fig.add_trace(go.Scatter(
-                x=proj_df['Date'], 
-                y=proj_df['Price'], 
-                name='AI Forecast', 
-                line=dict(color='#00FF00', width=3, dash='dash') # Dashed line for future
-            ))
+            # Multi-Color Projection Segments
+            last_hist_date = df.index[-1]
+            if hasattr(last_hist_date, 'strftime'):
+                last_hist_date = last_hist_date.strftime('%Y-%m-%d')
+            last_hist_price = df['Close'].iloc[-1]
+            
+            # Define color segments: (end_day, color, label)
+            segments = [
+                (10, "#00FF00", "10D"), 
+                (30, "#00DFFF", "30D"), 
+                (60, "#0080FF", "60D"), 
+                (90, "#8000FF", "90D"), 
+                (180, "#FF00FF", "180D")
+            ]
+            
+            prev_date = last_hist_date
+            prev_price = last_hist_price
+            
+            for end_day, color, label in segments:
+                # Filter projection data for this segment
+                seg_data = proj_df[proj_df['Day'] <= end_day]
+                if prev_day := (segments[segments.index((end_day, color, label))-1][0] if segments.index((end_day, color, label)) > 0 else 0):
+                    seg_data = proj_df[(proj_df['Day'] > prev_day) & (proj_df['Day'] <= end_day)]
+                
+                if not seg_data.empty:
+                    # Append previous point to ensure continuity
+                    seg_dates = [prev_date] + list(seg_data['Date'])
+                    seg_prices = [prev_price] + list(seg_data['Price'])
+                    
+                    proj_fig.add_trace(go.Scatter(
+                        x=seg_dates, 
+                        y=seg_prices, 
+                        name=f'Forecast ({label})', 
+                        line=dict(color=color, width=3, dash='dash')
+                    ))
+                    
+                    # Update prev for next segment
+                    prev_date = list(seg_data['Date'])[-1]
+                    prev_price = list(seg_data['Price'])[-1]
             
             # Fill Area (Confidence / Volatility visual) - simplified as under-fill
             proj_fig.update_layout(

@@ -315,7 +315,7 @@ class StockAnalyzer:
 
         # --- Common Output Construction ---
         targets = {}
-        target_days = [10, 30, 60, 90, 120]
+        target_days = [10, 30, 60, 90, 180]
         
         for d in target_days:
             if d <= len(future_predictions):
