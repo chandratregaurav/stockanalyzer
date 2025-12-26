@@ -311,7 +311,9 @@ def get_nse_holidays_2025():
 def get_next_trading_day(from_date=None):
     """Calculate the next trading day, skipping weekends and holidays."""
     if from_date is None:
-        from_date = date.today()
+        import pytz
+        tz = pytz.timezone('Asia/Kolkata')
+        from_date = datetime.now(tz).date()
     
     holidays = get_nse_holidays_2025()
     next_day = from_date + timedelta(days=1)
@@ -324,7 +326,9 @@ def get_next_trading_day(from_date=None):
 
 def is_market_open():
     """Check if NSE/BSE is open (9:15 AM - 3:30 PM IST, Mon-Fri), accounting for holidays."""
-    now = datetime.now()
+    import pytz
+    tz = pytz.timezone('Asia/Kolkata')
+    now = datetime.now(tz) # Current IST time
     today = now.date()
     holidays = get_nse_holidays_2025()
     
@@ -340,11 +344,17 @@ def is_market_open():
         day_name = next_trading.strftime("%A, %b %d")
         return False, f"📅 Markets Closed - Weekend | Next Trading Day: {day_name}"
     
+    # Market Hours (IST)
     market_open = now.replace(hour=9, minute=15, second=0, microsecond=0)
     market_close = now.replace(hour=15, minute=30, second=0, microsecond=0)
     
     if now < market_open:
         mins_to_open = (market_open - now).seconds // 60
+        # If > 60 mins, show hours
+        if mins_to_open > 60:
+             hrs = mins_to_open // 60
+             mins = mins_to_open % 60
+             return False, f"🌙 Market Closed. Opens in {hrs}h {mins}m (09:15 AM)"
         return False, f"⏰ Market Opens at 9:15 AM (in {mins_to_open} mins)"
     elif now > market_close:
         next_trading = get_next_trading_day(today)
