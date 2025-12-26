@@ -1471,32 +1471,42 @@ elif page == "🤖 Paper Trading Simulator":
     # Strict Market Hours Enforcement for Bot
     market_open, market_msg = is_market_open()
     
-    # Bot Control
-    col_bot, _ = st.columns([1, 4])
-    with col_bot:
-        if not market_open:
-             st.warning(f"Bot Paused: {market_msg}")
-             auto_bot_active = False
-        else:
-             auto_bot_active = st.toggle("🤖 START AUTO-TRADING BOT", value=False, key="toggle_bot_main")
+    # Bot Status Indicator (Autonomous)
+    if market_open:
+        st.markdown("""
+        <div style="background: rgba(0, 255, 0, 0.1); border: 1px solid rgba(0, 255, 0, 0.5); padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 15px;">
+            <span style="color: #00FF00; font-weight: bold; font-size: 18px;">🟢 AI BOT IS WORKING</span>
+            <div style="font-size: 12px; color: #00FF00; opacity: 0.8;">Actively scanning market and managing positions...</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style="background: rgba(255, 0, 0, 0.1); border: 1px solid rgba(255, 0, 0, 0.5); padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 15px;">
+            <span style="color: #FF4B4B; font-weight: bold; font-size: 18px;">💤 AI BOT IS SLEEPING</span>
+            <div style="font-size: 12px; color: #FF4B4B; opacity: 0.8;">Market is closed. Resuming next trading session.</div>
+        </div>
+        """, unsafe_allow_html=True)
 
     bot_placeholder = st.empty()
     log_placeholder = st.container()
 
-    if auto_bot_active:
-        st.toast("🤖 Bot Activated! Trading automatically...")
-        
-        while True:
-            with bot_placeholder.container():
-                # Check if market is open
-                market_open, market_msg = is_market_open()
-                st.caption(f"🤖 {datetime.now().strftime('%H:%M:%S')} | {market_msg}")
-                
-                if not market_open:
-                    st.warning(f"⏸️ {market_msg} - Bot paused.")
-                    time.sleep(60)
-                    st.rerun()
-                    continue
+    # Autonomous Execution Loop
+    st.toast("🤖 Autonomous Bot Active (Watch only mode)")
+    
+    while True:
+        with bot_placeholder.container():
+            # Check market state again inside loop
+            is_open, m_msg = is_market_open()
+            st.caption(f"🕒 {datetime.now().strftime('%H:%M:%S')} | {m_msg}")
+            
+            if not is_open:
+                # Sleep Mode logic
+                st.info(f"⏸️ {m_msg} - Monitoring for open...")
+                time.sleep(60) # Longer wait in sleep mode
+                st.rerun()
+                continue
+            
+            # --- Working Mode Logic ---
                 
                 screener = StockScreener(POPULAR_STOCKS)
                 

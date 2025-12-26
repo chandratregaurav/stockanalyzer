@@ -1,7 +1,6 @@
 
 import pandas as pd
 from datetime import datetime
-
 import json
 import os
 
@@ -11,20 +10,17 @@ class PaperTrader:
         self.initial_balance = initial_balance
         self.cash = initial_balance
         self.positions = {} # {ticker: {'qty': int, 'avg_price': float, 'ts': timestamp}}
-        self.trade_log = [] # List of trade dicts
+        self.trade_log = [] # List of trade text logs
         self.total_profit = 0.0
         self.equity_history = [{"ts": datetime.now().strftime('%Y-%m-%d %H:%M:%S'), "value": initial_balance}]
         
-        # --- NEW: Learning & Feedback Loop Meta ---
         self.learning_file = "trading_rules.json"
         self.trade_history_file = "detailed_trade_logs.json"
         self.active_rules = self.load_learned_rules()
         
-        # Try loading existing state
         self.load_state()
 
     def save_state(self):
-        """Saves current state to JSON file."""
         state = {
             "cash": self.cash,
             "positions": self.positions,
@@ -39,7 +35,6 @@ class PaperTrader:
             print(f"Error saving state: {e}")
 
     def load_state(self):
-        """Loads state from JSON file if exists."""
         if os.path.exists(self.state_file):
             try:
                 with open(self.state_file, "r") as f:
@@ -53,7 +48,6 @@ class PaperTrader:
                 print(f"Error loading state: {e}")
 
     def get_portfolio_value(self, current_prices):
-        """Calculates total value (Cash + Holdings)."""
         holdings_value = 0.0
         for ticker, pos in self.positions.items():
             current_price = current_prices.get(ticker, pos['avg_price'])
@@ -61,76 +55,70 @@ class PaperTrader:
         return self.cash + holdings_value
 
     def log_portfolio_value(self, current_prices):
-        """Records current portfolio value for history plotting."""
         val = self.get_portfolio_value(current_prices)
         self.equity_history.append({"ts": datetime.now().strftime('%Y-%m-%d %H:%M:%S'), "value": val})
         self.save_state()
 
-    # --- Learning Logic ---
     def load_learned_rules(self):
-        """Loads rules learned from previous mistakes."""
         if os.path.exists(self.learning_file):
-            with open(self.learning_file, "r") as f:
-                return json.load(f)
-        return {"blocklist_conditions": [], "min_confidence": 60}
+            try:
+                with open(self.learning_file, "r") as f:
+                    return json.load(f)
+            except: pass
+        return {"blocklist_conditions": [], "min_confidence": 60, "last_learning_ts": None}
 
     def save_learned_rules(self):
         with open(self.learning_file, "w") as f:
             json.dump(self.active_rules, f, indent=2)
 
     def analyze_mistakes(self):
-        """
-        AI 'Self-Correction' Logic:
-        Scans detailed trade logs for recurring factors in failed trades (Stop Losses).
-        """
         if not os.path.exists(self.trade_history_file): return
-        
-        with open(self.trade_history_file, "r") as f:
-            logs = json.load(f)
-        
-        failures = [l for l in logs if l.get('pnl_pct', 0) < 0]
-        if len(failures) >= 3:
-            # Simple Pattern Recognition (can be replaced by an actual AI call)
-            avg_rsi_fail = sum([l.get('rsi', 50) for l in failures]) / len(failures)
-            if avg_rsi_fail > 70:
-                self.active_rules['blocklist_conditions'].append("Avoid trades when RSI > 70 (Overbought Burn)")
-                self.save_learned_rules()
-            elif avg_rsi_fail < 30:
-                self.active_rules['blocklist_conditions'].append("Avoid trades when RSI < 30 (Falling Knife)")
-                self.save_learned_rules()
+        try:
+            with open(self.trade_history_file, "r") as f:
+                logs = json.load(f)
+            failures = [l for l in logs if l.get('pnl_pct', 0) < 0]
+            if len(failures) < 3: return
+            fail_rsis = [l.get('rsi', 50) for l in failures]
+            avg_rsi_fail = sum(fail_rsis) / len(fail_rsis)
+            if avg_rsi_fail > 72:
+                self._update_rule("Avoid entries when RSI > 72 (Exhausted Trend)")
+            elif avg_rsi_fail < 35:
+                self._update_rule("Avoid entries when RSI < 35 (Weak Momentum)")
+            fail_vols = [l.get('vol_ratio', 1.0) for l in failures]
+            avg_vol_fail = sum(fail_vols) / len(fail_vols)
+            if avg_vol_fail > 4.0:
+                self._update_rule("Avoid 'Ultra-Spikes' (>4x Vol) as they often lead to instant reversal.")
+            self.active_rules['last_learning_ts'] = datetime.now().isoformat()
+            self.save_learned_rules()
+        except: pass
+
+    def _update_rule(self, rule_desc):
+        if rule_desc not in self.active_rules['blocklist_conditions']:
+            self.active_rules['blocklist_conditions'].append(rule_desc)
 
     def log_detailed_trade(self, trade_data):
-        """Saves trade metrics for future model training/learning."""
         all_logs = []
         if os.path.exists(self.trade_history_file):
-            with open(self.trade_history_file, "r") as f:
-                all_logs = json.load(f)
-        
+            try:
+                with open(self.trade_history_file, "r") as f:
+                    all_logs = json.load(f)
+            except: pass
         all_logs.append(trade_data)
         with open(self.trade_history_file, "w") as f:
             json.dump(all_logs, f, indent=2)
 
     def buy(self, ticker, price, amount=2000, metrics=None):
-        """Buys a stock with a fixed amount of cash (approx)."""
-        # Check against learned rules
         if metrics:
             rsi = metrics.get('rsi', 50)
-            if rsi > 70 and "Avoid trades when RSI > 70" in str(self.active_rules['blocklist_conditions']):
-                return False, "Blocked: RSI too high (Learned from previous fail)"
+            for rule in self.active_rules['blocklist_conditions']:
+                if "RSI > 72" in rule and rsi > 72: return False, f"Blocked: {rule}"
+                if "RSI < 35" in rule and rsi < 35: return False, f"Blocked: {rule}"
 
-        if ticker in self.positions:
-            return False, "Already holding position"
-        
-        if self.cash < amount:
-            amount = self.cash # Use remaining cash if less than target amount
-            
-        if amount < price:
-            return False, "Insufficient funds"
-            
+        if ticker in self.positions: return False, "Already holding"
+        if self.cash < amount: amount = self.cash
+        if amount < price: return False, "Insufficient funds"
         qty = int(amount // price)
-        if qty < 1:
-            return False, "Price too high for balance"
-            
+        if qty < 1: return False, "Price too high"
         cost = qty * price
         self.cash -= cost
         self.positions[ticker] = {
@@ -139,81 +127,48 @@ class PaperTrader:
             'ts': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'metrics_at_entry': metrics or {}
         }
-        
         log_entry = f"🟢 BUY  {ticker}: {qty} qty @ {price:.2f}"
-        self.trade_log.insert(0, log_entry) # Add to top
+        self.trade_log.insert(0, log_entry)
         self.save_state()
         return True, f"Bought {qty} of {ticker}"
 
     def sell(self, ticker, price, reason="Manual"):
-        """Sells a position completely."""
-        if ticker not in self.positions:
-            return False, "Position not found"
-            
+        if ticker not in self.positions: return False, "Not found"
         pos = self.positions[ticker]
-        qty = pos['qty']
-        avg_price = pos['avg_price']
-        
+        qty, avg_p = pos['qty'], pos['avg_price']
         revenue = qty * price
-        profit = revenue - (qty * avg_price)
-        pct_profit = (profit / (qty * avg_price)) * 100
-        
+        profit = revenue - (qty * avg_p)
+        pct_p = (profit / (qty * avg_p)) * 100
         self.cash += revenue
         self.total_profit += profit
-        
-        # Log for learning
         trade_summary = {
-            "ticker": ticker,
-            "pnl_pct": pct_profit,
-            "profit": profit,
+            "ticker": ticker, "pnl_pct": pct_p, "profit": profit,
             "rsi": pos.get('metrics_at_entry', {}).get('rsi', 50),
-            "exit_reason": reason,
-            "ts": datetime.now().isoformat()
+            "vol_ratio": pos.get('metrics_at_entry', {}).get('vol_ratio', 1.0),
+            "exit_reason": reason, "ts": datetime.now().isoformat()
         }
         self.log_detailed_trade(trade_summary)
-        
         del self.positions[ticker]
-        
         icon = "🔴" if profit < 0 else "🟢"
-        log_entry = f"{icon} SELL {ticker}: {qty} qty @ {price:.2f} | P&L: {profit:.2f} ({pct_profit:.1f}%) | {reason}"
+        log_entry = f"{icon} SELL {ticker}: {qty} qty @ {price:.2f} | P&L: {profit:.2f} ({pct_p:.1f}%) | {reason}"
         self.trade_log.insert(0, log_entry)
-        
-        # Trigger 'AI' review after every loss
-        if profit < 0:
-            self.analyze_mistakes()
-
+        if profit < 0: self.analyze_mistakes()
         self.save_state()
-        return True, f"Sold {ticker} for {profit:.2f} profit"
+        return True, f"Sold {ticker} for {profit:.2f}"
 
     def check_auto_exit(self, current_prices):
-        """
-        Auto-Sell logic (Rapid Scalping):
-        - Target: Take Profit at +0.80% Gain (Realistic for Large Caps)
-        - Stop Loss: Cut Loss at -0.40% Loss
-        - Risk:Reward Ratio: 1:2
-        """
         exits = []
-        
         for ticker in list(self.positions.keys()):
-            if ticker not in current_prices:
-                continue
-                
-            current_price = current_prices[ticker]
+            if ticker not in current_prices: continue
+            cur_p = current_prices[ticker]
             pos = self.positions[ticker]
-            entry_price = pos['avg_price']
-            
-            # Calculate Percentage P&L
-            pct_change = ((current_price - entry_price) / entry_price) * 100
-            abs_profit = (current_price - entry_price) * pos['qty']
-            
-            # Target Rule: +0.8% Scalp Target (Quick Profits)
-            if pct_change >= 0.80:
-                 success, msg = self.sell(ticker, current_price, reason=f"Target +{pct_change:.2f}% (₹{abs_profit:.0f}) 🎯")
-                 if success: exits.append(msg)
-            
-            # Stop Rule: -0.4% Tight Stop
-            elif pct_change <= -0.40:
-                 success, msg = self.sell(ticker, current_price, reason=f"Stop {pct_change:.2f}% (₹{abs_profit:.0f}) 🛑")
-                 if success: exits.append(msg)
-                 
+            entry_p = pos['avg_price']
+            pct_chg = ((cur_p - entry_p) / entry_p) * 100
+            abs_profit = (cur_p - entry_p) * pos['qty']
+            if pct_chg >= 0.80:
+                success, msg = self.sell(ticker, cur_p, reason=f"Target +{pct_chg:.2f}% 🎯")
+                if success: exits.append(msg)
+            elif pct_chg <= -0.40:
+                success, msg = self.sell(ticker, cur_p, reason=f"Stop {pct_chg:.2f}% 🛑")
+                if success: exits.append(msg)
         return exits
