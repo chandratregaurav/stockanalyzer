@@ -94,10 +94,10 @@ st.markdown("""
         padding-left: 1rem !important;
         padding-right: 1rem !important;
     }
-    h1, h2, h3, h4 {
-        margin-top: 2px !important;
-        margin-bottom: 2px !important;
-    }
+    h1 { font-size: 22px !important; margin-top: 5px !important; margin-bottom: 5px !important; }
+    h2 { font-size: 18px !important; margin-top: 4px !important; margin-bottom: 4px !important; }
+    h3 { font-size: 16px !important; margin-top: 3px !important; margin-bottom: 3px !important; }
+    h4 { font-size: 14px !important; margin-top: 2px !important; margin-bottom: 2px !important; }
     .stAlert {
         padding: 5px !important;
         margin-bottom: 5px !important;
@@ -844,7 +844,7 @@ if page == "Home":
         """, unsafe_allow_html=True)
 
 elif page == "💎 Potential Multibaggers":
-    st.title("💎 Potential Multibaggers (Advanced Strategy Scan)")
+    st.header("💎 Potential Multibaggers (Advanced Strategy Scan)")
     st.info("Scanner objective: Identify high-growth gems using professional institutional-grade filters. **Note:** Scans are randomized to prevent ticker bias.")
     
     # Universe & Strategy Selectors
