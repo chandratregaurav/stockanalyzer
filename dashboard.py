@@ -286,34 +286,54 @@ def get_market_sentiment():
 @st.cache_data(ttl=120)
 def get_marquee_data():
     """Fetches real-time prices for marquee indices and stocks."""
+    # Reduced symbol list for faster loading
     symbols = {
         "^NSEI": "NIFTY 50", "^BSESN": "SENSEX", "^NSEBANK": "BANK NIFTY",
         "RELIANCE.NS": "RELIANCE", "HDFCBANK.NS": "HDFC BANK", "ICICIBANK.NS": "ICICI BANK",
         "TCS.NS": "TCS", "INFY.NS": "INFY", "SBIN.NS": "SBI", "BHARTIARTL.NS": "AIRTEL",
-        "ITC.NS": "ITC", "KOTAKBANK.NS": "KOTAK BANK", "LT.NS": "L&T", "WIPRO.NS": "WIPRO",
-        "AXISBANK.NS": "AXIS BANK", "HINDUNILVR.NS": "HUL", "ADANIENT.NS": "ADANI ENT",
-        "SUNPHARMA.NS": "SUN PHARMA", "TATAMOTORS.NS": "TATA MOTORS", "M&M.NS": "M&M",
-        "BAJFINANCE.NS": "BAJAJ FINANCE", "MARUTI.NS": "MARUTI", "TITAN.NS": "TITAN",
-        "NESTLEIND.NS": "NESTLE", "TATASTEEL.NS": "TATA STEEL", "POWERGRID.NS": "POWERGRID",
-        "JSWSTEEL.NS": "JSW STEEL", "NTPC.NS": "NTPC", "HCLTECH.NS": "HCL TECH",
-        "ASIANPAINT.NS": "ASIAN PAINT", "BAJAJ-AUTO.NS": "BAJAJ AUTO", "ULTRACEMCO.NS": "ULTRATECH",
-        "GRASIM.NS": "GRASIM", "TECHM.NS": "TECHM", "ADANIPORTS.NS": "ADANI PORTS"
+        "ITC.NS": "ITC", "TATAMOTORS.NS": "TATA MOTORS", "ADANIENT.NS": "ADANI ENT",
+        "BAJFINANCE.NS": "BAJAJ FINANCE", "MARUTI.NS": "MARUTI", "TITAN.NS": "TITAN"
     }
     results = []
     try:
-        # Batch download for speed
-        data = yf.download(list(symbols.keys()), period="5d", interval="1d", group_by='ticker', progress=False)
-        for sym, name in symbols.items():
-            try:
-                df = data[sym] if len(symbols) > 1 else data
-                df = df.dropna(subset=['Close'])
-                if not df.empty:
-                    lp = df['Close'].iloc[-1]
-                    prev = df['Close'].iloc[-2] if len(df) > 1 else lp
-                    chg = ((lp - prev) / prev) * 100 if prev != 0 else 0
-                    results.append({"name": name, "price": lp, "change": chg})
-            except: continue
-    except: pass
+        import signal
+        
+        # Set a timeout for the download
+        def timeout_handler(signum, frame):
+            raise TimeoutError("Download timeout")
+        
+        # Only set alarm on Unix systems (not Windows)
+        if hasattr(signal, 'SIGALRM'):
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(10)  # 10 second timeout
+        
+        try:
+            # Batch download for speed - reduced to 2 days for faster response
+            data = yf.download(list(symbols.keys()), period="2d", interval="1d", 
+                             group_by='ticker', progress=False, threads=True)
+            
+            if hasattr(signal, 'SIGALRM'):
+                signal.alarm(0)  # Cancel the alarm
+            
+            for sym, name in symbols.items():
+                try:
+                    df = data[sym] if len(symbols) > 1 else data
+                    df = df.dropna(subset=['Close'])
+                    if not df.empty:
+                        lp = float(df['Close'].iloc[-1])
+                        prev = float(df['Close'].iloc[-2]) if len(df) > 1 else lp
+                        chg = ((lp - prev) / prev) * 100 if prev != 0 else 0
+                        results.append({"name": name, "price": lp, "change": chg})
+                except Exception:
+                    continue
+        except (TimeoutError, Exception) as e:
+            if hasattr(signal, 'SIGALRM'):
+                signal.alarm(0)
+            # Return empty on timeout/error - fallback will handle it
+            pass
+    except Exception:
+        pass
+    
     return results
 
 # Add Sentiment Hub (Absolute Top)
@@ -325,26 +345,35 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # Add Marquee UI
-marquee_data = get_marquee_data()
-if marquee_data:
-    items_html = ""
-    for item in marquee_data:
-        color = "#00FF00" if item['change'] >= 0 else "#FF4B4B"
-        icon = "🟢" if item['change'] >= 0 else "🔴"
-        items_html += f'<span class="marquee-item" style="color:{color};">{icon} {item["name"]}: {item["price"]:,.2f} ({item["change"]:+.2f}%)</span>'
-    
-    st.markdown(f"""
-    <div class="marquee">
-        <div class="marquee-content">
-            {items_html} {items_html}
+try:
+    marquee_data = get_marquee_data()
+    if marquee_data and len(marquee_data) > 0:
+        items_html = ""
+        for item in marquee_data:
+            color = "#00FF00" if item['change'] >= 0 else "#FF4B4B"
+            icon = "🟢" if item['change'] >= 0 else "🔴"
+            items_html += f'<span class="marquee-item" style="color:{color};">{icon} {item["name"]}: {item["price"]:,.2f} ({item["change"]:+.2f}%)</span>'
+        
+        st.markdown(f"""
+        <div class="marquee">
+            <div class="marquee-content">
+                {items_html} {items_html}
+            </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
-else:
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div class="marquee">
+            <div class="marquee-content">
+                <span class="marquee-item" style="color:#FFA500;">🔔 Live Ticker loading... Market data will appear shortly.</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+except Exception as e:
     st.markdown("""
     <div class="marquee">
         <div class="marquee-content">
-            <span class="marquee-item" style="color:#FFA500;">🔔 Live Ticker initializing... syncing with NSE/BSE feeds.</span>
+            <span class="marquee-item" style="color:#FF4B4B;">⚠️ Market data temporarily unavailable. Refreshing...</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
