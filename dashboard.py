@@ -1215,8 +1215,9 @@ elif page == "🤖 Paper Trading Simulator":
     st.markdown("""
     <div style="background: rgba(0, 255, 0, 0.05); padding: 15px; border-radius: 10px; border: 1px solid rgba(0, 255, 0, 0.2);">
         <strong>💼 Virtual Portfolio (₹50,000 Capital)</strong><br>
-        This bot autonomously scans the market and trades based on momentum and volatility rules.
-        <br>It will <strong>Buy</strong> on signals and <strong>Sell</strong> on targets (₹2 profit) or stops (₹1 loss).
+        This bot autonomously scans for <strong>Momentum Breakouts</strong> & <strong>Volume Bursts</strong>.
+        <br>It executes a <strong>Professional Scalping Strategy</strong>:
+        <br>🎯 <strong>Target:</strong> +1.5% Gain | 🛑 <strong>Stop Loss:</strong> -0.75% Loss (2:1 Ratio)
     </div>
     """, unsafe_allow_html=True)
     st.write("")

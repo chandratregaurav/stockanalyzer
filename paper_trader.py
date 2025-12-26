@@ -114,7 +114,12 @@ class PaperTrader:
         return True, f"Sold {ticker} for {profit:.2f} profit"
 
     def check_auto_exit(self, current_prices):
-        """Auto-Sell logic: Target ₹2/share profit, Stop Loss ₹1/share (2:1 ratio)."""
+        """
+        Auto-Sell logic (Professional Risk Management):
+        - Target: Take Profit at +1.5% Gain
+        - Stop Loss: Cut Loss at -0.75% Loss
+        - Risk:Reward Ratio: 1:2
+        """
         exits = []
         
         for ticker in list(self.positions.keys()):
@@ -125,17 +130,18 @@ class PaperTrader:
             pos = self.positions[ticker]
             entry_price = pos['avg_price']
             
-            # Absolute profit/loss per share
-            profit_per_share = current_price - entry_price
+            # Calculate Percentage P&L
+            pct_change = ((current_price - entry_price) / entry_price) * 100
+            abs_profit = (current_price - entry_price) * pos['qty']
             
-            # Target Rule: Take Profit at ₹2 per share (2:1 reward)
-            if profit_per_share >= 2.0:
-                 success, msg = self.sell(ticker, current_price, reason=f"Target +₹{profit_per_share:.2f} 🎯")
+            # Target Rule: +1.5% Scalp Target
+            if pct_change >= 1.5:
+                 success, msg = self.sell(ticker, current_price, reason=f"Target +{pct_change:.2f}% (₹{abs_profit:.0f}) 🎯")
                  if success: exits.append(msg)
             
-            # Stop Rule: Cut Loss at ₹1 per share (tight stop)
-            elif profit_per_share <= -1.0:
-                 success, msg = self.sell(ticker, current_price, reason=f"Stop -₹{abs(profit_per_share):.2f} 🛑")
+            # Stop Rule: -0.75% Hard Stop
+            elif pct_change <= -0.75:
+                 success, msg = self.sell(ticker, current_price, reason=f"Stop {pct_change:.2f}% (₹{abs_profit:.0f}) 🛑")
                  if success: exits.append(msg)
                  
         return exits
