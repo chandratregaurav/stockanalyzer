@@ -283,58 +283,16 @@ def get_market_sentiment():
     except Exception as e:
         return "MARKET DATA UNAVAILABLE", 0, "rgba(255,255,255,0.1)", ""
 
-@st.cache_data(ttl=60)  # CACHE BUSTED - v1.2.1
+@st.cache_data(ttl=30)
 def get_marquee_data():
-    """Fetches real-time prices for marquee indices and stocks."""
-    # Reduced symbol list for faster loading
-    symbols = {
-        "^NSEI": "NIFTY 50", "^BSESN": "SENSEX", "^NSEBANK": "BANK NIFTY",
-        "RELIANCE.NS": "RELIANCE", "HDFCBANK.NS": "HDFC BANK", "ICICIBANK.NS": "ICICI BANK",
-        "TCS.NS": "TCS", "INFY.NS": "INFY", "SBIN.NS": "SBI", "BHARTIARTL.NS": "AIRTEL",
-        "ITC.NS": "ITC", "TATAMOTORS.NS": "TATA MOTORS", "ADANIENT.NS": "ADANI ENT",
-        "BAJFINANCE.NS": "BAJAJ FINANCE", "MARUTI.NS": "MARUTI", "TITAN.NS": "TITAN"
-    }
-    results = []
+    """Reads latest price data from the background-generated JSON file."""
     try:
-        import signal
-        
-        # Set a timeout for the download
-        def timeout_handler(signum, frame):
-            raise TimeoutError("Download timeout")
-        
-        # Only set alarm on Unix systems (not Windows)
-        if hasattr(signal, 'SIGALRM'):
-            signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(10)  # 10 second timeout
-        
-        try:
-            # Batch download for speed - reduced to 2 days for faster response
-            data = yf.download(list(symbols.keys()), period="2d", interval="1d", 
-                             group_by='ticker', progress=False, threads=True)
-            
-            if hasattr(signal, 'SIGALRM'):
-                signal.alarm(0)  # Cancel the alarm
-            
-            for sym, name in symbols.items():
-                try:
-                    df = data[sym] if len(symbols) > 1 else data
-                    df = df.dropna(subset=['Close'])
-                    if not df.empty:
-                        lp = float(df['Close'].iloc[-1])
-                        prev = float(df['Close'].iloc[-2]) if len(df) > 1 else lp
-                        chg = ((lp - prev) / prev) * 100 if prev != 0 else 0
-                        results.append({"name": name, "price": lp, "change": chg})
-                except Exception:
-                    continue
-        except (TimeoutError, Exception) as e:
-            if hasattr(signal, 'SIGALRM'):
-                signal.alarm(0)
-            # Return empty on timeout/error - fallback will handle it
-            pass
-    except Exception:
+        if os.path.exists("marquee_data.json"):
+            with open("marquee_data.json", "r") as f:
+                return json.load(f)
+    except:
         pass
-    
-    return results
+    return []
 
 # Add Sentiment Hub (Absolute Top) - Smart Loading
 try:
@@ -396,6 +354,21 @@ except Exception as e:
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+# Auto-Refresh Logic (Hidden) - Refreshes price data every 60s
+st.components.v1.html(
+    """
+    <script>
+    if (!window.autoRefreshSet) {
+        window.autoRefreshSet = true;
+        setInterval(function() {
+            window.parent.location.reload();
+        }, 60000); 
+    }
+    </script>
+    """,
+    height=0
+)
 
 # Paper Trading & Assets
 from paper_trader import PaperTrader

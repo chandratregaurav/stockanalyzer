@@ -79,6 +79,32 @@ def run_bot():
             with open("bot_status.json", "w") as f:
                 json.dump(status, f)
 
+            # --- Marquee Data fetching ---
+            # Always fetch marquee data so users see closing prices when market is closed
+            try:
+                marquee_symbols = {
+                    "^NSEI": "NIFTY 50", "^BSESN": "SENSEX", "^NSEBANK": "BANK NIFTY",
+                    "RELIANCE.NS": "RELIANCE", "HDFCBANK.NS": "HDFC BANK", "ICICIBANK.NS": "ICICI BANK",
+                    "TCS.NS": "TCS", "INFY.NS": "INFY", "SBIN.NS": "SBI", "BHARTIARTL.NS": "AIRTEL",
+                    "ITC.NS": "ITC", "TATAMOTORS.NS": "TATA MOTORS", "ADANIENT.NS": "ADANI ENT"
+                }
+                m_data = yf.download(list(marquee_symbols.keys()), period="2d", interval="1d", progress=False, group_by='ticker')
+                marquee_results = []
+                for sym, name in marquee_symbols.items():
+                    try:
+                        df = m_data[sym] if len(marquee_symbols) > 1 else m_data
+                        df = df.dropna(subset=['Close'])
+                        if not df.empty:
+                            lp = float(df['Close'].iloc[-1])
+                            prev = float(df['Close'].iloc[-2]) if len(df) > 1 else lp
+                            chg = ((lp - prev) / prev) * 100 if prev != 0 else 0
+                            marquee_results.append({"name": name, "price": lp, "change": chg})
+                    except: continue
+                with open("marquee_data.json", "w") as f:
+                    json.dump(marquee_results, f)
+            except Exception as e:
+                print(f"Marquee fetch error: {e}")
+
             if not market_open:
                 # If market is closed, sleep for 5 mins but update heartbeat
                 time.sleep(300) 
