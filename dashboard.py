@@ -372,7 +372,7 @@ if marquee_data:
     st.markdown(f"""
     <div class="marquee">
         <div class="marquee-content">
-            {items_html}
+            {items_html} {items_html}
         </div>
     </div>
     """, unsafe_allow_html=True)
