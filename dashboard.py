@@ -971,8 +971,8 @@ elif page == "🔍 Deep Analyzer":
             # 2. Background Fetch for AI (Always at least 1Y Daily)
             if success:
                 ai_analyzer = StockAnalyzer(ticker_input)
-                # Determine how far back to go for AI (Max of 1Y or requested 5Y)
-                ai_days = 365 if period_preset != "5Y" else (365*5)
+                # Always fetch 5 years for AI to ensure maximum projection stability
+                ai_days = 365 * 5
                 ai_start = end_date - timedelta(days=ai_days)
                 ai_analyzer.fetch_data(start=ai_start, end=end_date, interval='1d')
                 
