@@ -269,67 +269,69 @@ class StockScreener:
         random.shuffle(scan_list)
         
         def process_ticker(ticker):
-            df = self.fetch_history(ticker)
-            if df is None or len(df) < 60: return None
-            
-            close = df['Close']
-            cur_p = close.iloc[-1]
-            score = 50 # Base
-            reasons = []
-            
-            # --- Strategy Modules ---
-            if strategy == "CAN SLIM (William O'Neil)":
-                # N: New Highs (dist from 52w high)
-                hi_52 = close.max()
-                dist_hi = (hi_52 - cur_p) / hi_52
-                # L: Leader (Price > MA50 > MA200 proxied by MA100)
-                ma50 = close.rolling(window=50, min_periods=1).mean().iloc[-1]
-                ma100 = close.rolling(window=100, min_periods=1).mean().iloc[-1]
+            try:
+                # Use a fresh instance of yfinance to avoid thread data clashing
+                end_date = date.today() + timedelta(days=1) 
+                start_date = end_date - timedelta(days=200) 
+                df = yf.download(ticker, start=start_date, end=end_date, progress=False, auto_adjust=True, threads=False)
                 
-                if cur_p > ma50 > ma100 and dist_hi < 0.10:
-                    score += 40
-                    reasons.append("Leading Momentum (New Highs)")
-                else: score -= 20
+                if df is None or df.empty or len(df) < 60:
+                    return None
                 
-            elif strategy == "Minervini Trend Template":
-                # Price > MA50 > MA150 > MA200 (Proxied)
-                ma20 = close.rolling(window=20, min_periods=1).mean().iloc[-1]
-                ma50 = close.rolling(window=50, min_periods=1).mean().iloc[-1]
-                ma150 = close.rolling(window=150, min_periods=1).mean().iloc[-1]
-                if cur_p > ma50 > ma150:
-                    score += 45
-                    reasons.append("Stage-2 Uptrend Template")
-                else: score -= 30
+                # Flatten columns
+                if isinstance(df.columns, pd.MultiIndex):
+                    df.columns = df.columns.droplevel('Ticker')
+                df = df.loc[:, ~df.columns.duplicated()].copy()
                 
-            elif strategy == "Low-Cap Moonshot (Beta)":
-                # Price is relatively low, but breaking out with massive volume
-                v_sma = df['Volume'].rolling(window=20, min_periods=1).mean().iloc[-1]
-                v_ratio = df['Volume'].iloc[-1] / v_sma if v_sma > 0 else 1.0
-                if v_ratio > 3.0:
-                    score += 50
-                    reasons.append("Massive Volume Inflow (3x Avg)")
-                else: score -= 10
+                close = df['Close']
+                cur_p = float(close.iloc[-1])
+                score = 50 # Base
+                reasons = []
+                
+                # --- Strategy Modules ---
+                if strategy == "CAN SLIM (William O'Neil)":
+                    hi_52 = close.max()
+                    dist_hi = (hi_52 - cur_p) / hi_52
+                    ma50 = close.rolling(window=50, min_periods=1).mean().iloc[-1]
+                    ma100 = close.rolling(window=100, min_periods=1).mean().iloc[-1]
+                    if cur_p > ma50 > ma100 and dist_hi < 0.15:
+                        score += 40
+                        reasons.append("Institutional Leader")
+                    else: score -= 20
+                    
+                elif strategy == "Minervini Trend Template":
+                    ma50 = close.rolling(window=50, min_periods=1).mean().iloc[-1]
+                    ma150 = close.rolling(window=150, min_periods=1).mean().iloc[-1]
+                    if cur_p > ma50 > ma150:
+                        score += 45
+                        reasons.append("Stage-2 Uptrend Confirmation")
+                    else: score -= 30
+                    
+                elif strategy == "Low-Cap Moonshot (Beta)":
+                    v_sma = df['Volume'].rolling(window=20, min_periods=1).mean().iloc[-1]
+                    v_ratio = df['Volume'].iloc[-1] / v_sma if v_sma > 0 else 1.0
+                    if v_ratio > 2.5:
+                        score += 50
+                        reasons.append("Heavy Smart Money Inflow")
+                    else: score -= 10
 
-            else: # "Strong Formula" (Default)
-                ma20 = close.rolling(window=20, min_periods=1).mean().iloc[-1]
-                ma50 = close.rolling(window=50, min_periods=1).mean().iloc[-1]
-                if cur_p > ma20 > ma50:
-                    score += 20
-                    reasons.append("Confirmed Momentum")
-                
-                rsi = self.calculate_rsi(close).iloc[-1]
-                if 45 < rsi < 65: 
-                    score += 20
-                    reasons.append("Stable Accumulation Zone")
+                else: # Strong Formula
+                    ma20 = close.rolling(window=20, min_periods=1).mean().iloc[-1]
+                    ma50 = close.rolling(window=50, min_periods=1).mean().iloc[-1]
+                    if cur_p > ma20 > ma50:
+                        score += 20
+                        reasons.append("Solid Momentum")
+                    
+                    rsi = self.calculate_rsi(close).iloc[-1]
+                    if 45 < rsi < 70: 
+                        score += 20
+                        reasons.append("Optimal Entry Zone")
 
-            return {
-                'ticker': ticker,
-                'score': score,
-                'current_price': cur_p,
-                'reasons': reasons
-            }
+                return {'ticker': ticker, 'score': score, 'current_price': cur_p, 'reasons': reasons}
+            except:
+                return None
 
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        with ThreadPoolExecutor(max_workers=5) as executor:
             raw_results = list(executor.map(process_ticker, scan_list))
             
         results = [r for r in raw_results if r is not None and r['score'] >= 60]
