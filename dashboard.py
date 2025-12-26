@@ -542,9 +542,6 @@ def render_share_buttons(ticker, price, change, type="analysis"):
     </div>
     """, unsafe_allow_html=True)
 
-# Removed global title to save space
-# st.title("📈 Stock Analysis & Projection")
-
 # --- Constants ---
 @st.cache_data
 def load_ticker_db():
@@ -557,6 +554,19 @@ def load_ticker_db():
             data = sorted(data, key=lambda x: x['symbol'])
             return data
     return []
+
+@st.cache_data(ttl=86400) # Only fetch once a day
+def fetch_nifty_500():
+    """Dynamically fetch the latest Nifty 500 list for broad Indian market scanning."""
+    try:
+        import pandas as pd
+        url = "https://archives.nseindia.com/content/indices/ind_nifty500list.csv"
+        df = pd.read_csv(url)
+        if not df.empty and 'Symbol' in df.columns:
+            return [f"{s}.NS" for s in df['Symbol'].tolist()]
+    except:
+        pass
+    return [s['symbol'] + ".NS" for s in load_ticker_db()[:500]]
 
 TICKER_DB = load_ticker_db()
 TICKER_MAP = {s['symbol']: s['name'] for s in TICKER_DB}
@@ -864,29 +874,45 @@ elif page == "💎 Potential Multibaggers":
     st.title("💎 Potential Multibaggers (Advanced Strategy Scan)")
     st.info("Scanner objective: Identify high-growth gems using professional institutional-grade filters. **Note:** Scans are randomized to prevent ticker bias.")
     
-    # Strategy Selector
-    strat_col1, strat_col2 = st.columns([2, 1])
+    # Universe & Strategy Selectors
+    strat_col1, strat_col2, strat_col3 = st.columns([1, 1, 1])
     with strat_col1:
+        selected_universe = st.selectbox(
+            "🏛️ Stock Universe",
+            ["Nifty 500 (Top Indian Stocks)", "Total Market (2000+ Stocks)"],
+            index=0,
+            help="Choose which set of Indian stocks to scan."
+        )
+        
+    with strat_col2:
         selected_strat = st.selectbox(
             "🎯 Select Multibagger Strategy",
             ["Strong Formula (Default)", "CAN SLIM (William O'Neil)", "Minervini Trend Template", "Low-Cap Moonshot (Beta)"],
             help="Choose the screening logic used to find potential 10x stocks."
         )
     
-    with strat_col2:
+    with strat_col3:
         st.write("") # Spacer
         if st.button("🚀 Run Strategy Scan", type="primary", use_container_width=True):
-            with st.spinner(f"Executing {selected_strat} on 500+ Indian Stocks..."):
-                screener = StockScreener([s['symbol'] for s in TICKER_DB])
+            with st.spinner(f"Executing {selected_strat} on {selected_universe}..."):
+                # Determine tickers to scan based on universe
+                if "Nifty 500" in selected_universe:
+                    tickers_to_scan = fetch_nifty_500()
+                else:
+                    tickers_to_scan = [f"{s['symbol']}.NS" for s in TICKER_DB]
+                
+                screener = StockScreener(tickers_to_scan)
                 candidates = screener.get_multibagger_candidates(limit=10, strategy=selected_strat)
                 st.session_state['multibagger_results'] = candidates
                 st.session_state['last_multibagger_strat'] = selected_strat
+                st.session_state['last_multibagger_universe'] = selected_universe
 
     if st.session_state.get('multibagger_results'):
         candidates = st.session_state['multibagger_results']
         current_strat = st.session_state.get('last_multibagger_strat', "selected")
+        current_univ = st.session_state.get('last_multibagger_universe', "Market")
         
-        st.write(f"### 💎 Top 10 Multibagger Recommendations ({current_strat})")
+        st.write(f"### 💎 Top 10 Multibagger Recommendations ({current_strat} | {current_univ})")
         st.markdown("---")
         # 2-Column Grid for 10 items
         for i in range(0, len(candidates), 2):
