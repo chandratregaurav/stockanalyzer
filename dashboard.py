@@ -11,6 +11,7 @@ import yfinance as yf
 import stock_screener
 from stock_screener import StockScreener
 from stock_analyzer import StockAnalyzer
+import threading
 
 # --- Page Configuration (MUST be first Streamlit command) ---
 st.set_page_config(page_title="Stock Analysis Pro | AI-Powered Indian Stock Screener & Multibagger Finder", layout="wide", page_icon="📈")
@@ -494,6 +495,22 @@ def is_market_open():
 # --- Initialization ---
 if 'trader' not in st.session_state:
     st.session_state['trader'] = PaperTrader(initial_balance=10000.0)
+
+@st.cache_resource
+def start_bot_service():
+    """Starts the bot as a background thread that stays alive with the app."""
+    try:
+        from background_bot import run_bot
+        # Start in a daemon thread so it dies when the main process dies
+        thread = threading.Thread(target=run_bot, daemon=True)
+        thread.start()
+        return f"Service started at {datetime.now()}"
+    except Exception as e:
+        return f"Error starting service: {e}"
+
+# Launch Service
+if 'bot_svc' not in st.session_state:
+    st.session_state['bot_svc'] = start_bot_service()
 
 def play_alert_sound():
     """Plays a beep sound using HTML5 Audio from assets."""
