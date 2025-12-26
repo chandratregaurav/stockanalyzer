@@ -386,4 +386,9 @@ if __name__ == "__main__":
     # Simple test
     analyzer = StockAnalyzer("GOOGL")
     if analyzer.fetch_data():
-        analyzer.analyze_and_project()
+        analyzer.calculate_indicators()
+        analyzer.fetch_fundamentals()
+        forecast = analyzer.generate_forecast()
+        pros, cons = analyzer.get_pros_cons()
+        print(f"Forecast: {forecast['targets'] if forecast else 'N/A'}")
+        print(f"Pros: {pros}")

@@ -10,7 +10,10 @@ def job(ticker):
     print(f"\n[{datetime.now()}] Starting daily job for {ticker}")
     analyzer = StockAnalyzer(ticker)
     if analyzer.fetch_data():
-        analyzer.analyze_and_project()
+        analyzer.fetch_fundamentals()
+        # You can add more processing here if needed, 
+        # but avoid calling non-existent analyze_and_project()
+        print(f"Analysis complete for {ticker}")
     print(f"[{datetime.now()}] Job finished.")
 
 def main():

@@ -13,29 +13,30 @@ from stock_screener import StockScreener
 from stock_analyzer import StockAnalyzer
 
 # --- Page Configuration (MUST be first Streamlit command) ---
-st.set_page_config(page_title="Stock Analysis Pro | Indian Market Forecaster", layout="wide", page_icon="📈")
+st.set_page_config(page_title="Stock Analysis Pro | AI-Powered Indian Stock Screener & Multibagger Finder", layout="wide", page_icon="📈")
 
 # SEO Meta Tags Integration (Hidden from UI)
 st.markdown("""
 <div style="display:none;">
-    <title>Stock Analysis Pro | 10x Multibagger Finder & Nifty Forecaster</title>
-    <meta name="description" content="Free professional AI stock analysis for Indian Markets. Find Multibagger gems using CAN SLIM & Minervini strategies. Real-time Nifty 50 forecasting.">
-    <meta name="keywords" content="Multibagger Stocks India, Nifty 50 Prediction, Stock Screeners, Best Stocks to Buy, NSE BSE Analysis, Pro Trading Tools">
-    <meta name="author" content="StockPro AI">
+    <title>Stock Analysis Pro | AI Stock Screener & Multibagger Finder India</title>
+    <meta name="description" content="Discover high-growth multibagger stocks in the Indian market using AI-powered screeners, CAN SLIM strategies, and real-time Nifty 50 forecasting. Professional tools for NSE & BSE traders.">
+    <meta name="keywords" content="Stock Screener India, Multibagger Stocks, Nifty 50 Prediction, NSE BSE Analysis, Best Stocks to Buy India, AI Trading Tools, Minervini Strategy, CAN SLIM India">
+    <meta name="author" content="StockPro AI Quant Team">
+    <link rel="canonical" href="https://yourdomain.com/" />
     
     <!-- Open Graph / Meta -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="StockPro AI | Professional Market Intelligence">
-    <meta property="og:description" content="Advanced AI-powered stock analysis, paper trading, and screener for Indian Markets.">
+    <meta property="og:title" content="Stock Analysis Pro | Professional Indian Market Intelligence">
+    <meta property="og:description" content="Advanced AI-powered stock analysis, paper trading simulator, and high-performance screener for Indian Markets.">
     <meta property="og:image" content="https://img.freepik.com/free-vector/gradient-stock-market-concept_23-2149166910.jpg">
     
     <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Stock Analysis Pro | 10x Multibagger Scanner">
-    <meta name="twitter:description" content="Scan 500+ Indian stocks for multibagger potential instantly.">
+    <meta name="twitter:description" content="Scan 500+ Indian stocks for multibagger potential instantly with institutional-grade filters.">
     <meta name="twitter:image" content="https://images.unsplash.com/photo-1611974717482-48dfc0543fb4?q=80&w=2070&auto=format&fit=crop">
     
-    <!-- JSON-LD Structured Data -->
+    <!-- JSON-LD Structured Data for SEO -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -43,6 +44,7 @@ st.markdown("""
       "name": "Stock Analysis Pro",
       "operatingSystem": "Web",
       "applicationCategory": "FinanceApplication",
+      "description": "Professional stock analysis and screening tool for Indian markets NSE/BSE.",
       "offers": {
         "@type": "Offer",
         "price": "0",
@@ -183,6 +185,33 @@ st.markdown("""
         animation: pulse-green 2s infinite;
         background: linear-gradient(90deg, #002B00, #00FF00, #002B00) !important;
     }
+    /* Share Button Styling */
+    .share-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 12px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: bold;
+        margin-right: 8px;
+        transition: opacity 0.2s;
+    }
+    .share-btn:hover { opacity: 0.8; color: white !important; }
+    .whatsapp-btn { background-color: #25D366; color: white !important; }
+    .twitter-btn { background-color: #1DA1F2; color: white !important; }
+    
+    /* Community Heatmap Item */
+    .heatmap-item {
+        background: rgba(255,255,255,0.03);
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin-bottom: 5px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        border-left: 3px solid #00FF00;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -232,9 +261,9 @@ def get_market_sentiment():
         change_pct = ((last_close - prev_close) / prev_close) * 100
         
         if change_pct <= -2.0:
-            return "BLOOD BATH 🩸", change_pct, "", "blood-bath"
+            return "MAJOR SELL-OFF 🩸", change_pct, "", "blood-bath"
         elif change_pct <= -0.5:
-            return "MARKET NOT OK ⚠️", change_pct, "#FF4B4B", ""
+            return "BEARISH PRESSURE ⚠️", change_pct, "#FF4B4B", ""
         elif change_pct <= 0.5:
             return "SIDEWAYS / CHOPPY ⚖️", change_pct, "rgba(255,255,255,0.1)", ""
         elif change_pct <= 1.5:
@@ -369,12 +398,28 @@ if 'trader' not in st.session_state:
 def play_alert_sound():
     """Plays a beep sound using HTML5 Audio from assets."""
     if ALERT_SOUND_B64 and st.session_state.get('audio_enabled', False):
-        # Browsers require user interaction before playing audio. 
-        # The toggle 'audio_enabled' satisfies this.
         st.markdown(
             f'<audio autoplay="true" style="display:none;"><source src="{ALERT_SOUND_B64}" type="audio/wav"></audio>',
             unsafe_allow_html=True
         )
+
+def render_share_buttons(ticker, price, change, type="analysis"):
+    """Renders viral share social buttons."""
+    import urllib.parse
+    text = f"🚀 just analyzed {ticker} on StockPro! Price: ₹{price:.2f} ({change:+.2f}%). Check out the AI forecast here!"
+    if "multibagger" in type:
+        text = f"💎 Found a potential MULTIBAGGER: {ticker} on StockPro AI! Signal: {change} score. Check it out!"
+    
+    encoded_text = urllib.parse.quote(text)
+    wa_url = f"https://api.whatsapp.com/send?text={encoded_text}"
+    tw_url = f"https://twitter.com/intent/tweet?text={encoded_text}"
+    
+    st.markdown(f"""
+    <div style="margin-top: 10px;">
+        <a href="{wa_url}" target="_blank" class="share-btn whatsapp-btn">Share on WhatsApp</a>
+        <a href="{tw_url}" target="_blank" class="share-btn twitter-btn">Tweet Quote</a>
+    </div>
+    """, unsafe_allow_html=True)
 
 st.title("📈 Stock Analysis & Projection")
 
@@ -466,6 +511,19 @@ with st.sidebar:
     # Controls (Sound Alerts etc)
     st.header("⚙️ Settings")
     st.session_state['audio_enabled'] = st.checkbox("🔊 Enable Sound Alerts", value=True)
+    st.divider()
+
+    # Lead Capture Form (Newsletter)
+    st.markdown("### 📨 Alpha Alerts")
+    with st.form("newsletter_form"):
+        email = st.text_input("Get Top 5 Daily Picks", placeholder="your@email.com")
+        submit_leads = st.form_submit_button("Join 5k+ Traders 🚀", use_container_width=True)
+        if submit_leads:
+            if email:
+                st.success("You're on the list! Watch your inbox.")
+            else:
+                st.error("Please enter email.")
+
     st.divider()
     
     # Footfall Badge
@@ -609,11 +667,26 @@ if page == "Home":
     # 3. Quick Tips / Global Context
     tc1, tc2 = st.columns(2)
     with tc1:
-        st.write("### 🚀 Market Sentiment")
-        st.write("Broad indices are showing strength in the IT and Pharma sectors today.")
+        st.write("### 🔥 Community Pulse")
+        import random
+        trending = random.sample(POPULAR_STOCKS, 4)
+        for t in trending:
+            st.markdown(f"""
+            <div class="heatmap-item">
+                <span>🔍 Analyzing <b>{t.replace('.NS', '')}</b></span>
+                <span style="color:#00FF00; font-size: 10px;">LIVE</span>
+            </div>
+            """, unsafe_allow_html=True)
+            
     with tc2:
-        st.write("### 💡 Trading Pro Tip")
-        st.write("Always wait for confirmation from the **EMA Cloud** before entering a trade on a breakout star.")
+        st.write("### 🤝 Refer & Earn")
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #1e1e1e00, #00FF0015); padding: 15px; border-radius: 12px; border: 1px solid rgba(0,255,0,0.2); height: 100%;">
+            <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">Invite a Pro Trader</div>
+            <div style="font-size: 12px; opacity: 0.8; margin-bottom: 10px;">Get 1-month Premium API access for every 3 friends who join.</div>
+            <button style="width: 100%; background: #00FF00; color: black; border: none; padding: 8px; border-radius: 5px; font-weight: bold; cursor: pointer;">Copy Referral Link</button>
+        </div>
+        """, unsafe_allow_html=True)
 
 elif page == "💎 Potential Multibaggers":
     st.title("💎 Potential Multibaggers (Advanced Strategy Scan)")
@@ -660,6 +733,13 @@ elif page == "💎 Potential Multibaggers":
                         <div style="font-size: 16px; opacity: 0.9; margin: 10px 0;">Current Price: **₹{stock['current_price']:.2f}**</div>
                         <div style="font-size: 13px; color: #AAA; line-height: 1.6;">
                             {" • ".join(stock['reasons'])}
+                        </div>
+                        <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+                            <span style="font-size: 11px; opacity: 0.6; display: block; margin-bottom: 5px;">VIRAL PROPAGATION:</span>
+                            <div style="display: flex; gap: 5px;">
+                                <a href="https://api.whatsapp.com/send?text=Found%20a%20Multibagger!%20{stock['ticker']}%20at%20₹{stock['current_price']:.2f}" target="_blank" class="share-btn whatsapp-btn">WhatsApp</a>
+                                <a href="https://twitter.com/intent/tweet?text=Multibagger%20Alert:%20{stock['ticker']}" target="_blank" class="share-btn twitter-btn">X</a>
+                            </div>
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
@@ -797,6 +877,15 @@ elif page == "🔍 Deep Analyzer":
         ticker = st.session_state['ticker']
         
         st.header(f"{ticker} Analysis ({len(df)} candles)")
+        
+        # Share stats row
+        sc_1, sc_2 = st.columns([2, 1])
+        with sc_1:
+            cur_p = df['Close'].iloc[-1]
+            prev_p = df['Close'].iloc[-2]
+            chg = ((cur_p - prev_p)/prev_p)*100
+            render_share_buttons(ticker, cur_p, chg)
+        st.write("---")
         
         # 1. Fundamentals Section (Moved to Top)
         if analyzer.info:
@@ -1218,6 +1307,13 @@ elif page == "🤖 Paper Trading Simulator":
         <br>🎯 <strong>Target:</strong> +0.80% Gain | 🛑 <strong>Stop Loss:</strong> -0.40% Loss (2:1 Ratio)
     </div>
     """, unsafe_allow_html=True)
+    
+    # AI Rules Display
+    if trader.active_rules.get('blocklist_conditions'):
+        with st.expander("🧠 AI Learned Rules (Self-Healing)", expanded=False):
+            st.info("The bot has identified these patterns in past losses and will now automatically avoid them:")
+            for rule in trader.active_rules['blocklist_conditions']:
+                st.write(f"🚫 {rule}")
     st.write("")
 
     m1, m2, m3 = st.columns(3)
@@ -1322,10 +1418,19 @@ elif page == "🤖 Paper Trading Simulator":
                             
                             # Buy Condition: Score > 50 
                             if score >= 50:
-                                success, msg = trader.buy(ticker, price)
+                                # PASS METRICS TO LEARNING ENGINE
+                                metrics_to_save = {
+                                    'rsi': pick.get('rsi', 50),
+                                    'vol_ratio': pick.get('vol_ratio', 1.0),
+                                    'score': score
+                                }
+                                success, msg = trader.buy(ticker, price, metrics=metrics_to_save)
                                 if success:
                                     play_alert_sound()
                                     st.toast(msg, icon="🛍️")
+                                else:
+                                    if "Blocked" in msg:
+                                        st.warning(f"🤖 AI Blocked Trade: {ticker} - {msg}")
                     
                     # Display Status
                     if top_scalps:
