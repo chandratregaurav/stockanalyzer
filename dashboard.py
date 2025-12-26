@@ -411,8 +411,7 @@ nav_options = [
     "⚡ Intraday Surge (1-2 Hr)", 
     "🤖 Paper Trading Simulator",
     "💎 Potential Multibaggers",
-    "📊 Portfolio & Analytics",
-    "🤝 Contact & Collab"
+    "📊 Portfolio & Analytics"
 ]
 
 # Key-Rotation Pattern: Bypasses Streamlit's internal widget state
@@ -1362,43 +1361,7 @@ elif page == "🤖 Paper Trading Simulator":
             for log in trader.trade_log:
                 st.text(log)
 
-elif page == "🤝 Contact & Collab":
-    render_ad_space()
-    st.title("🤝 Contact & Collaboration")
-    st.markdown("---")
-    
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        st.markdown(f"""
-        <div style="background: rgba(255,255,255,0.03); padding: 30px; border-radius: 20px; border: 1px solid rgba(0, 255, 0, 0.2);">
-            <h2 style="color: #00FF00; margin-top: 0;">👤 Personal Profile</h2>
-            <p style="font-size: 18px;"><strong>Name:</strong> Gaurav Chandratre</p>
-            <p style="font-size: 16px; opacity: 0.8;">Full-Stack Developer & Quantitative Trading Enthusiast.</p>
-            <hr style="opacity: 0.1; margin: 20px 0;">
-            <p>📧 <strong>Email:</strong> <a href="mailto:chandratregaurav+stocks@gmail.com" style="color: #00FF00; text-decoration: none;">chandratregaurav+stocks@gmail.com</a></p>
-            <p>📱 <strong>Phone / WhatsApp:</strong> +91 9503776242</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-    with col2:
-        st.markdown("""
-        <div style="background: rgba(255,255,255,0.03); padding: 30px; border-radius: 20px; border: 1px solid rgba(0, 255, 0, 0.2);">
-            <h2 style="color: #00FF00; margin-top: 0;">🚀 Business & Ads</h2>
-            <p style="font-size: 16px;">We are currently opening the platform for <strong>Strategic Collaborations</strong> and <strong>Premium Ad Placements</strong>.</p>
-            <ul style="line-height: 1.8; opacity: 0.9;">
-                <li>Sponsored Ticker Placement</li>
-                <li>Exclusive Brokerage Partnerships</li>
-                <li>Product Review & Deep Dives</li>
-                <li>Custom Strategy Development</li>
-            </ul>
-            <div style="background: rgba(0, 255, 0, 0.1); padding: 15px; border-radius: 10px; margin-top: 20px; text-align: center;">
-                <strong>Interested?</strong><br>Reach out via Email or WhatsApp for a customized media kit.
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    st.info("💡 **Note:** This platform is growing rapidly. Partner with us to reach a highly engaged audience of Indian traders and investors.")
+
 
 # --- Scrolling Disclaimer Marquee (v3.9) ---
 st.markdown("""
