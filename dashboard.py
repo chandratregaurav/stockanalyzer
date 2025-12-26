@@ -914,40 +914,44 @@ elif page == "💎 Potential Multibaggers":
         
         st.write(f"### 💎 Top 10 Multibagger Recommendations ({current_strat} | {current_univ})")
         st.markdown("---")
-        # 2-Column Grid for 10 items
-        for i in range(0, len(candidates), 2):
-            cols = st.columns(2)
-            chunk = candidates[i:i+2]
-            for j, stock in enumerate(chunk):
-                with cols[j]:
-                    st.markdown(f"""
-                    <div style="background: rgba(255,255,255,0.03); padding: 25px; border-radius: 15px; border: 1px solid rgba(0, 255, 0, 0.2); min-height: 200px; margin-bottom: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: start;">
-                            <h2 style="color: #00FF00; margin: 0;">{stock['ticker']}</h2>
-                            <div style="font-size: 14px; font-weight: bold; background: rgba(0,255,0,0.15); padding: 5px 12px; border-radius: 20px; color: #00FF00;">
-                                {stock['score']}% Signal
-                            </div>
-                        </div>
-                        <div style="font-size: 16px; opacity: 0.9; margin: 10px 0;">Current Price: **₹{stock['current_price']:.2f}**</div>
-                        <div style="font-size: 13px; color: #AAA; line-height: 1.6;">
-                            {" • ".join(stock['reasons'])}
-                        </div>
-                        <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
-                            <span style="font-size: 11px; opacity: 0.6; display: block; margin-bottom: 5px;">VIRAL PROPAGATION:</span>
-                            <div style="display: flex; gap: 5px;">
-                                <a href="https://api.whatsapp.com/send?text=Found%20a%20Multibagger!%20{stock['ticker']}%20at%20₹{stock['current_price']:.2f}" target="_blank" class="share-btn whatsapp-btn">WhatsApp</a>
-                                <a href="https://twitter.com/intent/tweet?text=Multibagger%20Alert:%20{stock['ticker']}" target="_blank" class="share-btn twitter-btn">X</a>
-                            </div>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    if st.button(f"Analyze {stock['ticker']}", key=f"multi_{stock['ticker']}", use_container_width=True):
-                        st.session_state['ticker_target'] = stock['ticker']
-                        st.session_state['page_target'] = "🔍 Deep Analyzer"
-                        st.session_state['trigger_analyze'] = True 
-                        st.rerun()
-        st.success("Multibagger logic check successful for 10 candidates.")
+        
+        # Table Header
+        hcol1, hcol2, hcol3, hcol4, hcol5 = st.columns([1.5, 1, 1, 3, 1.2])
+        with hcol1: st.write("**📦 TICKER**")
+        with hcol2: st.write("**💰 PRICE**")
+        with hcol3: st.write("**🎯 SIGNAL**")
+        with hcol4: st.write("**💡 KEY REASONS**")
+        with hcol5: st.write("**🛠️ ACTION**")
+        
+        st.markdown('<div style="margin-top: -10px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);"></div>', unsafe_allow_html=True)
+
+        for stock in candidates:
+            # Each stock in a row
+            rcol1, rcol2, rcol3, rcol4, rcol5 = st.columns([1.5, 1, 1, 3, 1.2])
+            
+            with rcol1:
+                st.markdown(f'<h4 style="color: #00FF00; margin: 0;">{stock["ticker"]}</h4>', unsafe_allow_html=True)
+            
+            with rcol2:
+                st.write(f"₹{stock['current_price']:.2f}")
+            
+            with rcol3:
+                st.markdown(f'<span style="background: rgba(0,255,0,0.1); color: #00FF00; padding: 3px 8px; border-radius: 5px; font-weight: bold;">{stock["score"]}%</span>', unsafe_allow_html=True)
+            
+            with rcol4:
+                reasons = " • ".join(stock['reasons'])
+                st.markdown(f'<span style="font-size: 13px; opacity: 0.8;">{reasons}</span>', unsafe_allow_html=True)
+            
+            with rcol5:
+                if st.button("🔍 Analyze", key=f"multi_btn_{stock['ticker']}", use_container_width=True):
+                    st.session_state['ticker_target'] = stock['ticker']
+                    st.session_state['page_target'] = "🔍 Deep Analyzer"
+                    st.session_state['trigger_analyze'] = True 
+                    st.rerun()
+            
+            st.markdown('<div style="border-bottom: 1px solid rgba(255,255,255,0.05); margin: 10px 0;"></div>', unsafe_allow_html=True)
+
+        st.success(f"Scanning complete. Showing top {len(candidates)} potential gems.")
             
         if st.button("🗑️ Clear Results"):
             del st.session_state['multibagger_results']
