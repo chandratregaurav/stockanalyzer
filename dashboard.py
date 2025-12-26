@@ -562,6 +562,48 @@ TICKER_DB = load_ticker_db()
 TICKER_MAP = {s['symbol']: s['name'] for s in TICKER_DB}
 TICKER_OPTIONS = [f"{s['symbol']} - {s['name']}" for s in TICKER_DB]
 
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def search_yahoo_finance(query):
+    """Search Yahoo Finance for stock symbols matching the query."""
+    if not query or len(query) < 2:
+        return []
+    
+    try:
+        import requests
+        # Yahoo Finance search API
+        url = f"https://query2.finance.yahoo.com/v1/finance/search"
+        params = {
+            'q': query,
+            'quotesCount': 10,
+            'newsCount': 0,
+            'enableFuzzyQuery': False,
+            'quotesQueryId': 'tss_match_phrase_query'
+        }
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        
+        response = requests.get(url, params=params, headers=headers, timeout=3)
+        if response.status_code == 200:
+            data = response.json()
+            results = []
+            for quote in data.get('quotes', []):
+                symbol = quote.get('symbol', '')
+                name = quote.get('longname') or quote.get('shortname', '')
+                exchange = quote.get('exchange', '')
+                
+                # Filter for Indian stocks (NSE/BSE)
+                if '.NS' in symbol or '.BO' in symbol or exchange in ['NSI', 'BOM']:
+                    results.append({
+                        'symbol': symbol.replace('.NS', '').replace('.BO', ''),
+                        'name': name,
+                        'exchange': 'NSE' if '.NS' in symbol else 'BSE'
+                    })
+            return results[:10]
+    except Exception as e:
+        pass
+    
+    return []
+
+
 POPULAR_STOCKS = [
     "RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "ICICIBANK.NS",
     "SBIN.NS", "BHARTIARTL.NS", "ITC.NS", "KOTAKBANK.NS", "LICI.NS",
@@ -923,8 +965,8 @@ elif page == "🔍 Deep Analyzer":
     with sc2:
         st.write("**🔍 Search Stock**")
         
-        # Add "Custom Entry" option to the list
-        search_options = ["⌨️ Type custom symbol..."] + TICKER_OPTIONS
+        # Add "Search Online" option to the list
+        search_options = ["🌐 Search online for any stock..."] + TICKER_OPTIONS
         
         selected = st.selectbox(
             "Search Ticker or Company Name",
@@ -933,19 +975,45 @@ elif page == "🔍 Deep Analyzer":
             label_visibility="collapsed"
         )
         
-        # If user selects custom entry, show text input
-        if selected == "⌨️ Type custom symbol...":
-            custom_symbol = st.text_input(
-                "Enter stock symbol",
-                placeholder="e.g., ELITECON, NETWEB, etc.",
-                key="custom_ticker_input",
+        # If user selects online search, show text input with live results
+        if selected == "🌐 Search online for any stock...":
+            search_query = st.text_input(
+                "Type stock name or symbol",
+                placeholder="e.g., Elitecon, Reliance, TCS...",
+                key="online_search_input",
                 label_visibility="collapsed"
-            ).strip().upper()
+            ).strip()
             
-            if custom_symbol:
-                suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
-                ticker_input = f"{custom_symbol}{suffix}"
-                st.markdown(f"<html><head><title>Analyzing {custom_symbol} | Stock Analysis Pro</title></head></html>", unsafe_allow_html=True)
+            if search_query and len(search_query) >= 2:
+                with st.spinner("Searching Yahoo Finance..."):
+                    online_results = search_yahoo_finance(search_query)
+                
+                if online_results:
+                    # Show results in a selectbox
+                    result_options = [f"{r['symbol']} - {r['name']} ({r['exchange']})" for r in online_results]
+                    selected_result = st.selectbox(
+                        "Select from results",
+                        result_options,
+                        key="online_result_select",
+                        label_visibility="collapsed"
+                    )
+                    
+                    if selected_result:
+                        sym = selected_result.split(' - ')[0]
+                        # Extract exchange from result
+                        if '(NSE)' in selected_result:
+                            ticker_input = f"{sym}.NS"
+                        elif '(BSE)' in selected_result:
+                            ticker_input = f"{sym}.BO"
+                        else:
+                            suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
+                            ticker_input = f"{sym}{suffix}"
+                        st.markdown(f"<html><head><title>Analyzing {sym} | Stock Analysis Pro</title></head></html>", unsafe_allow_html=True)
+                    else:
+                        ticker_input = "RELIANCE.NS"
+                else:
+                    st.warning(f"No results found for '{search_query}'. Try a different search term.")
+                    ticker_input = "RELIANCE.NS"
             else:
                 ticker_input = "RELIANCE.NS"
         else:
