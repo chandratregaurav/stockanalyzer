@@ -107,7 +107,7 @@ st.markdown("""
     }
     .marquee-content {
         display: inline-block;
-        animation: marquee 12s linear infinite;
+        animation: marquee 25s linear infinite;
         padding-left: 100%;
     }
     .marquee-content:hover {
