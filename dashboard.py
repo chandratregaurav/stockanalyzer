@@ -107,8 +107,11 @@ st.markdown("""
     }
     .marquee-content {
         display: inline-block;
-        animation: marquee 30s linear infinite;
+        animation: marquee 15s linear infinite;
         padding-left: 100%;
+    }
+    .marquee-content:hover {
+        animation-play-state: paused;
     }
     @keyframes marquee {
         0% { transform: translate(0, 0); }
@@ -275,7 +278,7 @@ def get_market_sentiment():
 
 @st.cache_data(ttl=300)
 def get_marquee_data():
-    """Fetches live prices for major indices and stocks for the marquee."""
+    """Fetches live prices for major indices and main Nifty 50 stocks for the marquee."""
     symbols = {
         "^NSEI": "NIFTY 50",
         "^BSESN": "SENSEX",
@@ -289,14 +292,31 @@ def get_marquee_data():
         "BHARTIARTL.NS": "BHARTI AIRTEL",
         "ITC.NS": "ITC",
         "LICI.NS": "LIC",
-        "TATAMOTORS.NS": "TATA MOTORS"
+        "TATAMOTORS.NS": "TATA MOTORS",
+        "AXISBANK.NS": "AXIS BANK",
+        "KOTAKBANK.NS": "KOTAK BANK",
+        "LT.NS": "L&T",
+        "BAJFINANCE.NS": "BAJAJ FINANCE",
+        "MARUTI.NS": "MARUTI",
+        "SUNPHARMA.NS": "SUN PHARMA",
+        "TITAN.NS": "TITAN",
+        "HINDUNILVR.NS": "HUL",
+        "ADANIPORTS.NS": "ADANI PORTS",
+        "ASIANPAINT.NS": "ASIAN PAINT",
+        "ONGC.NS": "ONGC"
     }
     results = []
     try:
         data = yf.download(list(symbols.keys()), period="2d", group_by='ticker', progress=False)
         for sym, name in symbols.items():
-            if sym in data.columns.levels[0] or (len(symbols) == 1):
-                df = data[sym] if len(symbols) > 1 else data
+            try:
+                if isinstance(data.columns, pd.MultiIndex):
+                    if sym in data.columns.levels[0]:
+                        df = data[sym]
+                    else: continue
+                else:
+                    df = data
+                
                 df = df.dropna(subset=['Close'])
                 if len(df) >= 2:
                     last_price = df['Close'].iloc[-1]
@@ -307,6 +327,8 @@ def get_marquee_data():
                         "price": last_price,
                         "change": change
                     })
+            except:
+                continue
     except:
         pass
     return results
