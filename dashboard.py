@@ -309,27 +309,25 @@ except:
     </div>
     """, unsafe_allow_html=True)
 
-# --- Market Data Display Logic ---
-marquee_data = get_marquee_data()
-
-# 1. Top Index Pulse (Refreshed Metrics)
-def render_index_pulse():
+# --- Market Data Display Logic (Targeted Fragment Refresh) ---
+@st.fragment(run_every=60)
+def render_market_data_bar():
     pulse_data = get_marquee_data()
+    
+    # 1. Top Index Pulse
     nifty = next((d for d in pulse_data if d['name'] == "NIFTY 50"), None)
     bank_nifty = next((d for d in pulse_data if d['name'] == "BANK NIFTY"), None)
     
-    # Fallback to Live Fetch for these two if background bot haven't run yet
+    # Fallback to Live Fetch for Pulse
     if not nifty or not bank_nifty:
         try:
             d = yf.download(["^NSEI", "^NSEBANK"], period="2d", progress=False)
             if not d.empty:
-                # Handle MultiIndex columns
                 close_data = d['Close']
                 if "^NSEI" in close_data:
                     nifty_p = float(close_data['^NSEI'].dropna().iloc[-1])
                     nifty_prev = float(close_data['^NSEI'].dropna().iloc[-2]) if len(close_data) > 1 else nifty_p
                     nifty = {"name": "NIFTY 50", "price": nifty_p, "change": ((nifty_p-nifty_prev)/nifty_prev)*100}
-                
                 if "^NSEBANK" in close_data:
                     bn_p = float(close_data['^NSEBANK'].dropna().iloc[-1])
                     bn_prev = float(close_data['^NSEBANK'].dropna().iloc[-2]) if len(close_data) > 1 else bn_p
@@ -338,53 +336,27 @@ def render_index_pulse():
 
     col1, col2 = st.columns(2)
     if nifty:
-        with col1:
-            st.metric("💠 NIFTY 50", f"₹{nifty['price']:,.2f}", f"{nifty['change']:+.2f}%")
+        with col1: st.metric("💠 NIFTY 50", f"₹{nifty['price']:,.2f}", f"{nifty['change']:+.2f}%")
     if bank_nifty:
-        with col2:
-            st.metric("🏦 BANK NIFTY", f"₹{bank_nifty['price']:,.2f}", f"{bank_nifty['change']:+.2f}%")
+        with col2: st.metric("🏦 BANK NIFTY", f"₹{bank_nifty['price']:,.2f}", f"{bank_nifty['change']:+.2f}%")
 
-render_index_pulse()
+    # 2. Add Marquee UI (20 Stocks)
+    if pulse_data:
+        stocks_to_show = [d for d in pulse_data if d['name'] not in ["NIFTY 50", "BANK NIFTY", "SENSEX"]]
+        items_html = ""
+        for item in stocks_to_show:
+            color = "#00FF00" if item['change'] >= 0 else "#FF4B4B"
+            icon = "🟢" if item['change'] >= 0 else "🔴"
+            items_html += f'<span class="marquee-item" style="color:{color};">{icon} {item["name"]}: ₹{item["price"]:,.2f} ({item["change"]:+.2f}%)</span>'
+        
+        st.markdown(f"""
+            <div class="marquee"><div class="marquee-content">{items_html} {items_html}</div></div>
+            """, unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="marquee"><div class="marquee-content"><span class="marquee-item" style="color:#FFA500;">⚡ System Syncing...</span></div></div>', unsafe_allow_html=True)
 
-# 2. Add Marquee UI (20 Stocks)
-marquee_placeholder = st.empty()
-if marquee_data:
-    stocks_to_show = [d for d in marquee_data if d['name'] not in ["NIFTY 50", "BANK NIFTY", "SENSEX"]]
-    items_html = ""
-    for item in stocks_to_show:
-        color = "#00FF00" if item['change'] >= 0 else "#FF4B4B"
-        icon = "🟢" if item['change'] >= 0 else "🔴"
-        items_html += f'<span class="marquee-item" style="color:{color};">{icon} {item["name"]}: ₹{item["price"]:,.2f} ({item["change"]:+.2f}%)</span>'
-    
-    marquee_placeholder.markdown(f"""
-        <div class="marquee">
-            <div class="marquee-content">
-                {items_html} {items_html}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-else:
-    # Fallback if no data yet
-    marquee_placeholder.markdown("""
-        <div class="marquee"><div class="marquee-content">
-            <span class="marquee-item" style="color:#FFA500;">⚡ System synchronizing... Connecting to NSE/BSE Feed</span>
-        </div></div>
-    """, unsafe_allow_html=True)
-
-# Auto-Refresh Logic (Hidden) - Refreshes price data every 60s
-st.components.v1.html(
-    """
-    <script>
-    if (!window.autoRefreshSet) {
-        window.autoRefreshSet = true;
-        setInterval(function() {
-            window.parent.location.reload();
-        }, 120000); 
-    }
-    </script>
-    """,
-    height=0
-)
+# Run the fragment
+render_market_data_bar()
 
 # Paper Trading & Assets
 from paper_trader import PaperTrader
