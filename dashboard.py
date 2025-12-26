@@ -107,7 +107,7 @@ st.markdown("""
     }
     .marquee-content {
         display: inline-block;
-        animation: marquee 15s linear infinite;
+        animation: marquee 12s linear infinite;
         padding-left: 100%;
     }
     .marquee-content:hover {
@@ -303,7 +303,26 @@ def get_marquee_data():
         "HINDUNILVR.NS": "HUL",
         "ADANIPORTS.NS": "ADANI PORTS",
         "ASIANPAINT.NS": "ASIAN PAINT",
-        "ONGC.NS": "ONGC"
+        "ONGC.NS": "ONGC",
+        "M&M.NS": "M&M",
+        "TATASTEEL.NS": "TATA STEEL",
+        "HCLTECH.NS": "HCL TECH",
+        "ADANIENT.NS": "ADANI ENT",
+        "WIPRO.NS": "WIPRO",
+        "JSWSTEEL.NS": "JSW STEEL",
+        "NTPC.NS": "NTPC",
+        "POWERGRID.NS": "POWER GRID",
+        "ULTRACEMCO.NS": "ULTRACEMCO",
+        "HINDALCO.NS": "HINDALCO",
+        "NESTLEIND.NS": "NESTLE",
+        "GRASIM.NS": "GRASIM",
+        "BAJAJ-AUTO.NS": "BAJAJ AUTO",
+        "COALINDIA.NS": "COAL INDIA",
+        "BPCL.NS": "BPCL",
+        "APOLLOHOSP.NS": "APOLLO HOSP",
+        "TECHM.NS": "TECH MAHINDRA",
+        "CIPLA.NS": "CIPLA",
+        "DRREDDY.NS": "DR REDDY"
     }
     results = []
     try:
@@ -368,6 +387,10 @@ else:
             <span class="marquee-item" style="color:#00FF00;">🟢 RELIANCE: 2,980 (+1.2%)</span>
             <span class="marquee-item" style="color:#00FF00;">🟢 TCS: 3,920 (+0.95%)</span>
             <span class="marquee-item" style="color:#FF4B4B;">🔴 INFY: 1,840 (-0.4%)</span>
+            <span class="marquee-item" style="color:#00FF00;">🟢 HDFC BANK: 1,650 (+0.5%)</span>
+            <span class="marquee-item" style="color:#00FF00;">🟢 ICICI BANK: 1,120 (+1.1%)</span>
+            <span class="marquee-item" style="color:#FF4B4B;">🔴 SBI: 820 (-0.3%)</span>
+            <span class="marquee-item" style="color:#00FF00;">🟢 BHARTI AIRTEL: 1,450 (+0.8%)</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
