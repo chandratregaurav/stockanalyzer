@@ -734,12 +734,13 @@ if page == "Home":
             """, unsafe_allow_html=True)
             
     with tc2:
-        st.write("### 🤝 Refer & Earn")
+        st.write("### 💡 Trading Pro Tip")
         st.markdown("""
-        <div style="background: linear-gradient(135deg, #1e1e1e00, #00FF0015); padding: 15px; border-radius: 12px; border: 1px solid rgba(0,255,0,0.2); height: 100%;">
-            <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">Invite a Pro Trader</div>
-            <div style="font-size: 12px; opacity: 0.8; margin-bottom: 10px;">Get 1-month Premium API access for every 3 friends who join.</div>
-            <button style="width: 100%; background: #00FF00; color: black; border: none; padding: 8px; border-radius: 5px; font-weight: bold; cursor: pointer;">Copy Referral Link</button>
+        <div style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); height: 100%;">
+            <div style="font-size: 14px; font-weight: bold; color: #00FF00; margin-bottom: 5px;">Wait for the Pullback</div>
+            <div style="font-size: 13px; opacity: 0.8; line-height: 1.5;">
+                Never chase a 5% green candle. Professional traders wait for a low-volume consolidation or a touch of the 20-EMA before entering a momentum breakout.
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
