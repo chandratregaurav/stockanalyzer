@@ -20,14 +20,14 @@ st.markdown("""
 <div style="display:none;">
     <title>Stock Analysis Pro | 10x Multibagger Finder & Nifty Forecaster</title>
     <meta name="description" content="Free professional AI stock analysis for Indian Markets. Find Multibagger gems using CAN SLIM & Minervini strategies. Real-time Nifty 50 forecasting.">
-    <meta name="keywords" content="Multibagger Stocks India, Nifty 50 Prediction, Stock Screeners, Best Stocks to Buy, NSE BSE Analysis, Gaurav Chandratre">
-    <meta name="author" content="Gaurav Chandratre">
+    <meta name="keywords" content="Multibagger Stocks India, Nifty 50 Prediction, Stock Screeners, Best Stocks to Buy, NSE BSE Analysis, Pro Trading Tools">
+    <meta name="author" content="StockPro AI">
     
     <!-- Open Graph / Meta -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Stock Analysis Pro | High-Growth Stock Radar">
-    <meta property="og:description" content="Institutional-grade stock screening and AI forecasting for free.">
-    <meta property="og:image" content="https://images.unsplash.com/photo-1611974717482-48dfc0543fb4?q=80&w=2070&auto=format&fit=crop">
+    <meta property="og:title" content="StockPro AI | Professional Market Intelligence">
+    <meta property="og:description" content="Advanced AI-powered stock analysis, paper trading, and screener for Indian Markets.">
+    <meta property="og:image" content="https://img.freepik.com/free-vector/gradient-stock-market-concept_23-2149166910.jpg">
     
     <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image">
@@ -280,8 +280,7 @@ def render_ad_space():
     <div style="background: linear-gradient(90deg, #1e1e1e, #2d2d2d); padding: 12px; border-radius: 10px; border: 1px dashed rgba(0, 255, 0, 0.2); text-align: center; margin-bottom: 15px;">
         <div style="font-size: 9px; color: #00FF00; opacity: 0.6; text-transform: uppercase; margin-bottom: 2px;">👑 Sponsored Collaboration</div>
         <div style="font-size: 15px; font-weight: bold; color: #FFF;">Your Brand Name & Promotion Here</div>
-        <div style="font-size: 11px; opacity: 0.8; margin-top: 2px;">Reach 10,000+ active traders daily with premium placement. 
-        <a href="mailto:chandratregaurav+stocks@gmail.com" style="color: #00FF00; text-decoration: none;">Contact for Ad Rates →</a></div>
+        <div style="font-size: 11px; opacity: 0.8; margin-top: 2px;">Reach 10,000+ active traders daily with premium placement.</div>
     </div>
     """, unsafe_allow_html=True)
 
