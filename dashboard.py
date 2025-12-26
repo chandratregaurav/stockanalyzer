@@ -1440,9 +1440,11 @@ elif page == "⚡ Intraday Surge (1-2 Hr)":
             st.warning("No strong trending setups found.")
 
 elif page == "🤖 Paper Trading Simulator":
-    st.header("🤖 Auto-Trading Bot (Paper Simulator)")
+    st.header("🤖 Auto-Trading Bot Monitor")
     
     trader = st.session_state['trader']
+    trader.load_state() # Sync with background service
+    trader.active_rules = trader.load_learned_rules()
     
     st.markdown("""
     <div style="background: rgba(0, 255, 0, 0.05); padding: 15px; border-radius: 10px; border: 1px solid rgba(0, 255, 0, 0.2);">
@@ -1468,158 +1470,100 @@ elif page == "🤖 Paper Trading Simulator":
     
     st.divider()
     
-    # Strict Market Hours Enforcement for Bot
-    market_open, market_msg = is_market_open()
-    
-    # Bot Status Indicator (Autonomous)
-    if market_open:
-        st.markdown("""
-        <div style="background: rgba(0, 255, 0, 0.1); border: 1px solid rgba(0, 255, 0, 0.5); padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 15px;">
-            <span style="color: #00FF00; font-weight: bold; font-size: 18px;">🟢 AI BOT IS WORKING</span>
-            <div style="font-size: 12px; color: #00FF00; opacity: 0.8;">Actively scanning market and managing positions...</div>
+    # Bot Status Monitor (Reads from background_bot.py)
+    bot_status = {"active": False, "msg": "Bot not detected", "last_run": "Never"}
+    if os.path.exists("bot_status.json"):
+        try:
+            with open("bot_status.json", "r") as f:
+                bot_status = json.load(f)
+        except: pass
+
+    if bot_status.get("active"):
+        st.markdown(f"""
+        <div style="background: rgba(0, 255, 0, 0.1); border: 1px solid rgba(0, 255, 0, 0.5); padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px;">
+            <div style="color: #00FF00; font-weight: 800; font-size: 20px; letter-spacing: 1px;">🟢 AI BOT: {bot_status.get('msg', 'WORKING').upper()}</div>
+            <div style="font-size: 13px; color: #00FF00; opacity: 0.8; margin-top: 5px;">Last Update: {bot_status.get('last_run')} (Independent Background Service)</div>
         </div>
         """, unsafe_allow_html=True)
     else:
-        st.markdown("""
-        <div style="background: rgba(255, 0, 0, 0.1); border: 1px solid rgba(255, 0, 0, 0.5); padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 15px;">
-            <span style="color: #FF4B4B; font-weight: bold; font-size: 18px;">💤 AI BOT IS SLEEPING</span>
-            <div style="font-size: 12px; color: #FF4B4B; opacity: 0.8;">Market is closed. Resuming next trading session.</div>
+        st.markdown(f"""
+        <div style="background: rgba(255, 75, 75, 0.1); border: 1px solid rgba(255, 75, 75, 0.4); padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px;">
+            <div style="color: #FF4B4B; font-weight: 800; font-size: 20px; letter-spacing: 1px;">💤 AI BOT: {bot_status.get('msg', 'SLEEPING').upper()}</div>
+            <div style="font-size: 13px; color: #FF4B4B; opacity: 0.8; margin-top: 5px;">Service Status: {bot_status.get('msg')} | Next trading session starts at 09:15 AM IST.</div>
         </div>
         """, unsafe_allow_html=True)
+                            # Trigger if price hits or crosses target
+                            if current_p >= target_p:
+                                play_alert_sound()
+                                st.toast(f"🚨 ALERT: {t} hit ₹{current_p:.2f}! (Target: ₹{target_p})", icon="🔥")
+                                st.session_state['alerts'][i]['active'] = False # Deactivate after trigger
 
-    bot_placeholder = st.empty()
-    log_placeholder = st.container()
+            # B. Check Entries
+            if top_scalps:
+                # Attempt to buy any valid setup found (Top 5)
+                for pick in top_scalps:
+                    ticker = pick['ticker']
+                    price = pick['price']
+                    score = pick['score']
+                    
+                    # Buy Condition: Score > 50 
+                    if score >= 50:
+                        # PASS METRICS TO LEARNING ENGINE
+                        metrics_to_save = {
+                            'rsi': pick.get('rsi', 50),
+                            'vol_ratio': pick.get('vol_ratio', 1.0),
+                            'score': score
+                        }
+                        success, msg = trader.buy(ticker, price, metrics=metrics_to_save)
+                        if success:
+                            play_alert_sound()
+                            st.toast(msg, icon="🛍️")
+                        else:
+                            if "Blocked" in msg:
+                                st.warning(f"🤖 AI Blocked Trade: {ticker} - {msg}")
+            
+            # Display Status
+            if top_scalps:
+                st.info(f"Top Pick: {top_scalps[0]['ticker']} (Score: {top_scalps[0]['score']})")
+            else:
+                st.write("Market Quiet. No new buys.")
+                    
+        time.sleep(15)
+        st.rerun()
 
-    # Autonomous Execution Loop
-    st.toast("🤖 Autonomous Bot Active (Watch only mode)")
+    else: # Market is closed
+        st.markdown("""
+        <div style="background: rgba(255, 75, 75, 0.1); border: 1px solid rgba(255, 75, 75, 0.4); padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px;">
+            <div style="color: #FF4B4B; font-weight: 800; font-size: 20px; letter-spacing: 1px;">💤 AI BOT: SLEEPING</div>
+            <div style="font-size: 13px; color: #FF4B4B; opacity: 0.8; margin-top: 5px;">Market is currently closed. Bot will resume at 09:15 AM IST.</div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.info("The bot is offline. Watch the 'Trade Log' below to see records from the last session.")
+                
+    # Display Results
+    st.divider()
+    c_p, c_l = st.columns([2, 1])
     
-    while True:
-        with bot_placeholder.container():
-            # Check market state again inside loop
-            is_open, m_msg = is_market_open()
-            st.caption(f"🕒 {datetime.now().strftime('%H:%M:%S')} | {m_msg}")
-            
-            if not is_open:
-                # Sleep Mode logic
-                st.info(f"⏸️ {m_msg} - Monitoring for open...")
-                time.sleep(60) # Longer wait in sleep mode
-                st.rerun()
-                continue
-            
-            # --- Working Mode Logic ---
-                
-                screener = StockScreener(POPULAR_STOCKS)
-                
-                with st.spinner("Scanning for opportunities..."):
-                    # Run the Scan
-                    top_scalps = screener.screen_intraday()
-                    
-                    # A. Check Exits
-                    current_prices_map = {}
-                    if trader.positions:
-                            for t in trader.positions.keys():
-                                try:
-                                    # Optimization: If the stock is in top_scalps, use that price
-                                    found_in_scan = False
-                                    if top_scalps:
-                                        for s in top_scalps:
-                                            if s['ticker'] == t:
-                                                current_prices_map[t] = s['price']
-                                                found_in_scan = True
-                                                break
-                                    
-                                    if not found_in_scan:
-                                        import yfinance as yf
-                                        tick = yf.Ticker(t)
-                                        # Use fast_info or fallback
-                                        try:
-                                            p = tick.fast_info['last_price']
-                                            if p: current_prices_map[t] = p
-                                        except:
-                                            d = yf.download(t, period="1d", interval="1m", progress=False)
-                                            if not d.empty:
-                                                current_prices_map[t] = d['Close'].iloc[-1]
-                                except:
-                                    pass
-                    
-                    exit_msgs = trader.check_auto_exit(current_prices_map)
-                    if exit_msgs:
-                        play_alert_sound()
-                        for msg in exit_msgs:
-                            st.toast(msg, icon="💰")
+    with c_p:
+        if trader.positions:
+            st.subheader("💼 Active Positions")
+            pos_data = []
+            for t, p in trader.positions.items():
+                pos_data.append({
+                    "Symbol": t, "Qty": p['qty'], 
+                    "Entry": f"₹{p['avg_price']:.2f}", 
+                    "Value": f"₹{p['qty']*p['avg_price']:.2f}"
+                })
+            st.dataframe(pd.DataFrame(pos_data), use_container_width=True)
+        else:
+            st.info("Bot is currently looking for entries. No open positions.")
 
-                    # C. Check Custom Alerts (New)
-                    if st.session_state.get('alerts'):
-                        for i, alert in enumerate(st.session_state['alerts']):
-                            if alert['active']:
-                                t = alert['ticker']
-                                target_p = alert['price']
-                                # Use price from scan if available
-                                current_p = current_prices_map.get(t)
-                                if current_p:
-                                    # Trigger if price hits or crosses target
-                                    if current_p >= target_p:
-                                        play_alert_sound()
-                                        st.toast(f"🚨 ALERT: {t} hit ₹{current_p:.2f}! (Target: ₹{target_p})", icon="🔥")
-                                        st.session_state['alerts'][i]['active'] = False # Deactivate after trigger
-
-                    # B. Check Entries
-                    if top_scalps:
-                        # Attempt to buy any valid setup found (Top 5)
-                        for pick in top_scalps:
-                            ticker = pick['ticker']
-                            price = pick['price']
-                            score = pick['score']
-                            
-                            # Buy Condition: Score > 50 
-                            if score >= 50:
-                                # PASS METRICS TO LEARNING ENGINE
-                                metrics_to_save = {
-                                    'rsi': pick.get('rsi', 50),
-                                    'vol_ratio': pick.get('vol_ratio', 1.0),
-                                    'score': score
-                                }
-                                success, msg = trader.buy(ticker, price, metrics=metrics_to_save)
-                                if success:
-                                    play_alert_sound()
-                                    st.toast(msg, icon="🛍️")
-                                else:
-                                    if "Blocked" in msg:
-                                        st.warning(f"🤖 AI Blocked Trade: {ticker} - {msg}")
-                    
-                    # Display Status
-                    if top_scalps:
-                        st.info(f"Top Pick: {top_scalps[0]['ticker']} (Score: {top_scalps[0]['score']})")
-                    else:
-                        st.write("Market Quiet. No new buys.")
-                        
-            # Log 
-            with log_placeholder:
-                with st.expander("📜 Trade Log", expanded=True):
-                    for log in trader.trade_log:
-                        st.text(log)
-                        
-            time.sleep(15)
-            st.rerun()
-
-    # Display Open Positions Table (When not running loop)
-    if trader.positions:
-        st.subheader("Current Holdings")
-        pos_data = []
-        for t, p in trader.positions.items():
-            pos_data.append({
-                "Ticker": t,
-                "Qty": p['qty'],
-                "Avg Price": f"₹{p['avg_price']:.2f}",
-                "Value": f"₹{p['qty']*p['avg_price']:.2f}"
-            })
-        st.dataframe(pd.DataFrame(pos_data), use_container_width=True)
-        
-    with st.expander("📜 Trade Log"):
-            if not trader.trade_log:
-                st.info("No trades executed yet.")
-            for log in trader.trade_log:
-                st.text(log)
+    with c_l:
+        st.subheader("📜 Recent Activity")
+        if not trader.trade_log:
+            st.caption("No trades taken today yet.")
+        for log in trader.trade_log[:10]:
+            st.caption(log)
 
     st.divider()
     if st.button("🧹 Reset Simulator (Clear History)", help="Wipes all trade history and resets capital to ₹10,000."):
