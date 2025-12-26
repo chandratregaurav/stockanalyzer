@@ -273,6 +273,37 @@ def get_market_sentiment():
     except Exception as e:
         return "MARKET DATA UNAVAILABLE", 0, "rgba(255,255,255,0.1)", ""
 
+@st.cache_data(ttl=300)
+def get_marquee_data():
+    """Fetches live prices for major indices and stocks for the marquee."""
+    symbols = {
+        "^NSEI": "NIFTY 50",
+        "^BSESN": "SENSEX",
+        "^NSEBANK": "BANK NIFTY",
+        "RELIANCE.NS": "RELIANCE",
+        "TCS.NS": "TCS",
+        "INFY.NS": "INFY"
+    }
+    results = []
+    try:
+        data = yf.download(list(symbols.keys()), period="2d", group_by='ticker', progress=False)
+        for sym, name in symbols.items():
+            if sym in data.columns.levels[0] or (len(symbols) == 1):
+                df = data[sym] if len(symbols) > 1 else data
+                df = df.dropna(subset=['Close'])
+                if len(df) >= 2:
+                    last_price = df['Close'].iloc[-1]
+                    prev_close = df['Close'].iloc[-2]
+                    change = ((last_price - prev_close) / prev_close) * 100
+                    results.append({
+                        "name": name,
+                        "price": last_price,
+                        "change": change
+                    })
+    except:
+        pass
+    return results
+
 # Add Sentiment Hub (Absolute Top)
 mood, change, color, anim_class = get_market_sentiment()
 st.markdown(f"""
@@ -282,18 +313,35 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # Add Marquee UI
-st.markdown("""
-<div class="marquee">
-    <div class="marquee-content">
-        <span class="marquee-item" style="color:#00FF00;">🟢 NIFTY 50: 24,120 (+0.8%)</span>
-        <span class="marquee-item" style="color:#00FF00;">🟢 SENSEX: 79,230 (+0.75%)</span>
-        <span class="marquee-item" style="color:#FF4B4B;">🔴 BANK NIFTY: 51,450 (-0.2%)</span>
-        <span class="marquee-item" style="color:#00FF00;">🟢 RELIANCE: 2,980 (+1.2%)</span>
-        <span class="marquee-item" style="color:#00FF00;">🟢 TCS: 3,920 (+0.95%)</span>
-        <span class="marquee-item" style="color:#FF4B4B;">🔴 INFY: 1,840 (-0.4%)</span>
+marquee_data = get_marquee_data()
+if marquee_data:
+    items_html = ""
+    for item in marquee_data:
+        color = "#00FF00" if item['change'] >= 0 else "#FF4B4B"
+        icon = "🟢" if item['change'] >= 0 else "🔴"
+        items_html += f'<span class="marquee-item" style="color:{color};">{icon} {item["name"]}: {item["price"]:,.2f} ({item["change"]:+.2f}%)</span>'
+    
+    st.markdown(f"""
+    <div class="marquee">
+        <div class="marquee-content">
+            {items_html}
+        </div>
     </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
+else:
+    # Fallback to static if fetching fails
+    st.markdown("""
+    <div class="marquee">
+        <div class="marquee-content">
+            <span class="marquee-item" style="color:#00FF00;">🟢 NIFTY 50: 24,120 (+0.8%)</span>
+            <span class="marquee-item" style="color:#00FF00;">🟢 SENSEX: 79,230 (+0.75%)</span>
+            <span class="marquee-item" style="color:#FF4B4B;">🔴 BANK NIFTY: 51,450 (-0.2%)</span>
+            <span class="marquee-item" style="color:#00FF00;">🟢 RELIANCE: 2,980 (+1.2%)</span>
+            <span class="marquee-item" style="color:#00FF00;">🟢 TCS: 3,920 (+0.95%)</span>
+            <span class="marquee-item" style="color:#FF4B4B;">🔴 INFY: 1,840 (-0.4%)</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # Paper Trading & Assets
 from paper_trader import PaperTrader
