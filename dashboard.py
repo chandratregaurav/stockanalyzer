@@ -314,58 +314,83 @@ except:
 def render_market_data_bar():
     pulse_data = get_marquee_data()
     
-    # Define Targets
-    target_names = ["NIFTY 50", "SENSEX", "BANK NIFTY", "MIDCAP 100", "INDIA VIX"]
-    metrics = {name: next((d for d in pulse_data if d['name'] == name), None) for name in target_names}
+    # 1. Prepare indices with explicit names and symbols
+    indices_config = [
+        {"label": "💠 NIFTY 50", "sym": "^NSEI", "name": "NIFTY 50"},
+        {"label": "🏛️ SENSEX", "sym": "^BSESN", "name": "SENSEX"},
+        {"label": "🏦 BANK NIFTY", "sym": "^NSEBANK", "name": "BANK NIFTY"},
+        {"label": "📈 MIDCAP 100", "sym": "NIFTY_MIDCAP_100.NS", "name": "MIDCAP 100"},
+        {"label": "😱 INDIA VIX", "sym": "^INDIAVIX", "name": "INDIA VIX"}
+    ]
     
-    # Fallback to Live Fetch for Pulse if data missing
-    if not all(metrics.values()):
+    results = {}
+    # First: Try to fill from background pulse_data
+    for idx in indices_config:
+        found = next((d for d in pulse_data if d['name'] == idx['name']), None)
+        if found:
+            results[idx['name']] = found
+
+    # Second: If any missing, perform a targeted batch download
+    missing_syms = [idx['sym'] for idx in indices_config if idx['name'] not in results]
+    if missing_syms:
         try:
-            sym_map = {"^NSEI": "NIFTY 50", "^BSESN": "SENSEX", "^NSEBANK": "BANK NIFTY", "NIFTY_MIDCAP_100.NS": "MIDCAP 100", "^INDIAVIX": "INDIA VIX"}
-            d = yf.download(list(sym_map.keys()), period="2d", progress=False)
+            d = yf.download(missing_syms, period="2d", progress=False)
             if not d.empty:
-                close_data = d['Close']
-                # If d is a Series (one symbol), convert to DF
-                if isinstance(close_data, pd.Series):
-                    symbol = list(sym_map.keys())[0]
-                    close_data = pd.DataFrame({symbol: close_data})
-                
-                for sym, name in sym_map.items():
-                    if sym in close_data:
-                        valid_c = close_data[sym].dropna()
-                        if not valid_c.empty:
-                            p = float(valid_c.iloc[-1])
-                            prev = float(valid_c.iloc[-2]) if len(valid_c) > 1 else p
-                            metrics[name] = {"name": name, "price": p, "change": ((p-prev)/prev)*100}
-        except Exception: pass
+                # Normalize column access for both single and multi-symbol results
+                close_prices = d['Close']
+                for idx in indices_config:
+                    if idx['name'] in results: continue
+                    sym = idx['sym']
+                    
+                    try:
+                        # Extract ticker data from DataFrame or Series
+                        if len(missing_syms) == 1:
+                            valid_p = close_prices.dropna()
+                        else:
+                            valid_p = close_prices[sym].dropna() if sym in close_prices else None
+                        
+                        if valid_p is not None and not valid_p.empty:
+                            lp = float(valid_p.iloc[-1])
+                            prev = float(valid_p.iloc[-2]) if len(valid_p) > 1 else lp
+                            results[idx['name']] = {
+                                "name": idx['name'],
+                                "price": lp,
+                                "change": ((lp - prev) / prev) * 100 if prev != 0 else 0
+                            }
+                    except: continue
+        except: pass
 
-    # Render 5-column Index Bar
-    cols = st.columns(5)
-    for i, name in enumerate(target_names):
-        m = metrics.get(name)
-        with cols[i]:
+    # 3. Render the 5-column Layout
+    idx_cols = st.columns(5)
+    for i, idx in enumerate(indices_config):
+        with idx_cols[i]:
+            m = results.get(idx['name'])
             if m:
-                prefix = "" if "VIX" in name else "₹"
-                st.metric(name, f"{prefix}{m['price']:,.2f}", f"{m['change']:+.2f}%")
+                p_prefix = "" if "VIX" in idx['name'] else "₹"
+                st.metric(idx['label'], f"{p_prefix}{m['price']:,.2f}", f"{m['change']:+.2f}%")
             else:
-                st.metric(name, "Loading...", "---")
+                st.metric(idx['label'], "Loading...", "---")
 
-    # 2. Add Marquee UI (Exclude the indices shown above)
+    # 4. Add the Marquee (Purely stocks now)
     if pulse_data:
-        stocks_to_show = [d for d in pulse_data if d['name'] not in target_names]
-        items_html = ""
-        for item in stocks_to_show:
-            color = "#00FF00" if item['change'] >= 0 else "#FF4B4B"
-            icon = "🟢" if item['change'] >= 0 else "🔴"
-            items_html += f'<span class="marquee-item" style="color:{color};">{icon} {item["name"]}: ₹{item["price"]:,.2f} ({item["change"]:+.2f}%)</span>'
+        # Filter out the indices from the marquee
+        stock_names = [idx['name'] for idx in indices_config]
+        stocks_only = [d for d in pulse_data if d['name'] not in stock_names]
         
-        st.markdown(f"""
-            <div class="marquee"><div class="marquee-content">{items_html} {items_html}</div></div>
-            """, unsafe_allow_html=True)
+        items_html = ""
+        for s in stocks_only:
+            color = "#00FF00" if s['change'] >= 0 else "#FF4B4B"
+            icon = "🟢" if s['change'] >= 0 else "🔴"
+            items_html += f'<span class="marquee-item" style="color:{color};">{icon} {s["name"]}: ₹{s["price"]:,.2f} ({s["change"]:+.2f}%)</span>'
+        
+        if items_html:
+            st.markdown(f'<div class="marquee"><div class="marquee-content">{items_html} {items_html}</div></div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="marquee"><div class="marquee-content"><span class="marquee-item" style="color:#FFA500;">⚡ Synchronizing Stock Feed...</span></div></div>', unsafe_allow_html=True)
     else:
-        st.markdown('<div class="marquee"><div class="marquee-content"><span class="marquee-item" style="color:#FFA500;">⚡ System Syncing...</span></div></div>', unsafe_allow_html=True)
+         st.markdown('<div class="marquee"><div class="marquee-content"><span class="marquee-item" style="color:#FFA500;">⚡ System Connecting to NSE/BSE...</span></div></div>', unsafe_allow_html=True)
 
-# Run the fragment
+# Execute the refreshable fragment
 render_market_data_bar()
 
 # Paper Trading & Assets
