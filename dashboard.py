@@ -1010,13 +1010,6 @@ elif page == "🔍 Deep Analyzer":
                             suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
                             ticker_input = f"{sym}{suffix}"
                         st.markdown(f"<html><head><title>Analyzing {sym} | Stock Analysis Pro</title></head></html>", unsafe_allow_html=True)
-                    else:
-                        ticker_input = "RELIANCE.NS"
-                else:
-                    st.warning(f"No results found for '{search_query}'. Try a different search term.")
-                    ticker_input = "RELIANCE.NS"
-            else:
-                ticker_input = "RELIANCE.NS"
         else:
             # Regular selection from list
             sym = selected.split(' - ')[0]
