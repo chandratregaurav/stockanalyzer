@@ -1509,53 +1509,7 @@ elif page == "🤖 Paper Trading Simulator":
             <div style="font-size: 13px; color: #FF4B4B; opacity: 0.8; margin-top: 5px;">Service Status: {bot_status.get('msg')} | Next trading session starts at 09:15 AM IST.</div>
         </div>
         """, unsafe_allow_html=True)
-                            # Trigger if price hits or crosses target
-                            if current_p >= target_p:
-                                play_alert_sound()
-                                st.toast(f"🚨 ALERT: {t} hit ₹{current_p:.2f}! (Target: ₹{target_p})", icon="🔥")
-                                st.session_state['alerts'][i]['active'] = False # Deactivate after trigger
 
-            # B. Check Entries
-            if top_scalps:
-                # Attempt to buy any valid setup found (Top 5)
-                for pick in top_scalps:
-                    ticker = pick['ticker']
-                    price = pick['price']
-                    score = pick['score']
-                    
-                    # Buy Condition: Score > 50 
-                    if score >= 50:
-                        # PASS METRICS TO LEARNING ENGINE
-                        metrics_to_save = {
-                            'rsi': pick.get('rsi', 50),
-                            'vol_ratio': pick.get('vol_ratio', 1.0),
-                            'score': score
-                        }
-                        success, msg = trader.buy(ticker, price, metrics=metrics_to_save)
-                        if success:
-                            play_alert_sound()
-                            st.toast(msg, icon="🛍️")
-                        else:
-                            if "Blocked" in msg:
-                                st.warning(f"🤖 AI Blocked Trade: {ticker} - {msg}")
-            
-            # Display Status
-            if top_scalps:
-                st.info(f"Top Pick: {top_scalps[0]['ticker']} (Score: {top_scalps[0]['score']})")
-            else:
-                st.write("Market Quiet. No new buys.")
-                    
-        time.sleep(15)
-        st.rerun()
-
-    else: # Market is closed
-        st.markdown("""
-        <div style="background: rgba(255, 75, 75, 0.1); border: 1px solid rgba(255, 75, 75, 0.4); padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px;">
-            <div style="color: #FF4B4B; font-weight: 800; font-size: 20px; letter-spacing: 1px;">💤 AI BOT: SLEEPING</div>
-            <div style="font-size: 13px; color: #FF4B4B; opacity: 0.8; margin-top: 5px;">Market is currently closed. Bot will resume at 09:15 AM IST.</div>
-        </div>
-        """, unsafe_allow_html=True)
-        st.info("The bot is offline. Watch the 'Trade Log' below to see records from the last session.")
                 
     # Display Results
     st.divider()
