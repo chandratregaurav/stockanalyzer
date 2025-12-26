@@ -281,8 +281,15 @@ def get_marquee_data():
         "^BSESN": "SENSEX",
         "^NSEBANK": "BANK NIFTY",
         "RELIANCE.NS": "RELIANCE",
+        "HDFCBANK.NS": "HDFC BANK",
+        "ICICIBANK.NS": "ICICI BANK",
         "TCS.NS": "TCS",
-        "INFY.NS": "INFY"
+        "INFY.NS": "INFY",
+        "SBIN.NS": "SBI",
+        "BHARTIARTL.NS": "BHARTI AIRTEL",
+        "ITC.NS": "ITC",
+        "LICI.NS": "LIC",
+        "TATAMOTORS.NS": "TATA MOTORS"
     }
     results = []
     try:
