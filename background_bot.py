@@ -84,6 +84,7 @@ def run_bot():
             try:
                 marquee_symbols = {
                     "^NSEI": "NIFTY 50", "^BSESN": "SENSEX", "^NSEBANK": "BANK NIFTY",
+                    "^NSEMDCP100": "MIDCAP 100", "^INDIAVIX": "INDIA VIX",
                     "RELIANCE.NS": "RELIANCE", "HDFCBANK.NS": "HDFC BANK", "ICICIBANK.NS": "ICICI BANK",
                     "TCS.NS": "TCS", "INFY.NS": "INFY", "SBIN.NS": "SBI", "BHARTIARTL.NS": "AIRTEL",
                     "ITC.NS": "ITC", "TATAMOTORS.NS": "TATA MOTORS", "ADANIENT.NS": "ADANI ENT",

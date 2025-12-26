@@ -314,35 +314,41 @@ except:
 def render_market_data_bar():
     pulse_data = get_marquee_data()
     
-    # 1. Top Index Pulse
-    nifty = next((d for d in pulse_data if d['name'] == "NIFTY 50"), None)
-    bank_nifty = next((d for d in pulse_data if d['name'] == "BANK NIFTY"), None)
+    # Define Targets
+    target_names = ["NIFTY 50", "SENSEX", "BANK NIFTY", "MIDCAP 100", "INDIA VIX"]
+    metrics = {name: next((d for d in pulse_data if d['name'] == name), None) for name in target_names}
     
-    # Fallback to Live Fetch for Pulse
-    if not nifty or not bank_nifty:
+    # Fallback to Live Fetch for Pulse if data missing
+    if not all(metrics.values()):
         try:
-            d = yf.download(["^NSEI", "^NSEBANK"], period="2d", progress=False)
+            sym_map = {"^NSEI": "NIFTY 50", "^BSESN": "SENSEX", "^NSEBANK": "BANK NIFTY", "^NSEMDCP100": "MIDCAP 100", "^INDIAVIX": "INDIA VIX"}
+            d = yf.download(list(sym_map.keys()), period="2d", progress=False)
             if not d.empty:
                 close_data = d['Close']
-                if "^NSEI" in close_data:
-                    nifty_p = float(close_data['^NSEI'].dropna().iloc[-1])
-                    nifty_prev = float(close_data['^NSEI'].dropna().iloc[-2]) if len(close_data) > 1 else nifty_p
-                    nifty = {"name": "NIFTY 50", "price": nifty_p, "change": ((nifty_p-nifty_prev)/nifty_prev)*100}
-                if "^NSEBANK" in close_data:
-                    bn_p = float(close_data['^NSEBANK'].dropna().iloc[-1])
-                    bn_prev = float(close_data['^NSEBANK'].dropna().iloc[-2]) if len(close_data) > 1 else bn_p
-                    bank_nifty = {"name": "BANK NIFTY", "price": bn_p, "change": ((bn_p-bn_prev)/bn_prev)*100}
+                for sym, name in sym_map.items():
+                    if sym in close_data:
+                        valid_c = close_data[sym].dropna()
+                        if not valid_c.empty:
+                            p = float(valid_c.iloc[-1])
+                            prev = float(valid_c.iloc[-2]) if len(valid_c) > 1 else p
+                            metrics[name] = {"name": name, "price": p, "change": ((p-prev)/prev)*100}
         except: pass
 
-    col1, col2 = st.columns(2)
-    if nifty:
-        with col1: st.metric("💠 NIFTY 50", f"₹{nifty['price']:,.2f}", f"{nifty['change']:+.2f}%")
-    if bank_nifty:
-        with col2: st.metric("🏦 BANK NIFTY", f"₹{bank_nifty['price']:,.2f}", f"{bank_nifty['change']:+.2f}%")
+    # Render 5-column Index Bar
+    cols = st.columns(5)
+    for i, name in enumerate(target_names):
+        m = metrics.get(name)
+        if m:
+            with cols[i]:
+                prefix = "" if "VIX" in name else "₹"
+                # VIX change is inverted in meaning (Red is fear up, Green is fear down)
+                # But typically metric shows green for positive change. 
+                # For consistency with user expectation, we'll use normal logic.
+                st.metric(name, f"{prefix}{m['price']:,.2f}", f"{m['change']:+.2f}%")
 
-    # 2. Add Marquee UI (20 Stocks)
+    # 2. Add Marquee UI (Exclude the indices shown above)
     if pulse_data:
-        stocks_to_show = [d for d in pulse_data if d['name'] not in ["NIFTY 50", "BANK NIFTY", "SENSEX"]]
+        stocks_to_show = [d for d in pulse_data if d['name'] not in target_names]
         items_html = ""
         for item in stocks_to_show:
             color = "#00FF00" if item['change'] >= 0 else "#FF4B4B"
