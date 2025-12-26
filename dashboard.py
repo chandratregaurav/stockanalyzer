@@ -749,7 +749,7 @@ if 'page_target' in st.session_state:
     del st.session_state['page_target']
 
 if page == "Home":
-    st.caption("v1.2.0-compact") # Deployment check
+    st.caption("v1.2.5-FORCE-SYNC") # Deployment check
     st.markdown("#### 🏛️ Professional Trading Hub")
     
     # 1. Market Status Bar
