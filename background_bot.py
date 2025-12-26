@@ -86,7 +86,10 @@ def run_bot():
                     "^NSEI": "NIFTY 50", "^BSESN": "SENSEX", "^NSEBANK": "BANK NIFTY",
                     "RELIANCE.NS": "RELIANCE", "HDFCBANK.NS": "HDFC BANK", "ICICIBANK.NS": "ICICI BANK",
                     "TCS.NS": "TCS", "INFY.NS": "INFY", "SBIN.NS": "SBI", "BHARTIARTL.NS": "AIRTEL",
-                    "ITC.NS": "ITC", "TATAMOTORS.NS": "TATA MOTORS", "ADANIENT.NS": "ADANI ENT"
+                    "ITC.NS": "ITC", "TATAMOTORS.NS": "TATA MOTORS", "ADANIENT.NS": "ADANI ENT",
+                    "BAJFINANCE.NS": "BAJAJ FIN", "MARUTI.NS": "MARUTI", "TITAN.NS": "TITAN",
+                    "SUNPHARMA.NS": "SUN PHARMA", "LT.NS": "L&T", "HCLTECH.NS": "HCL TECH",
+                    "AXISBANK.NS": "AXIS BANK", "ASIANPAINT.NS": "ASIAN PAINT", "KOTAKBANK.NS": "KOTAK BANK"
                 }
                 m_data = yf.download(list(marquee_symbols.keys()), period="2d", interval="1d", progress=False, group_by='ticker')
                 marquee_results = []

@@ -309,50 +309,55 @@ except:
     </div>
     """, unsafe_allow_html=True)
 
-# Add Marquee UI - SMART LAZY LOADING (NON-BLOCKING)
+# --- Market Data Display Logic ---
+marquee_data = get_marquee_data()
+
+# 1. Top Index Bar (Static at top)
+if marquee_data:
+    indices = [d for d in marquee_data if d['name'] in ["NIFTY 50", "BANK NIFTY", "SENSEX"]]
+    other_stocks = [d for d in marquee_data if d['name'] not in ["NIFTY 50", "BANK NIFTY", "SENSEX"]]
+    
+    if indices:
+        idx_html = ""
+        for idx in indices[:3]: # Only show top 3 indices at top
+            color = "#00FF00" if idx['change'] >= 0 else "#FF4B4B"
+            symbol = "▲" if idx['change'] >= 0 else "▼"
+            idx_html += f"""
+            <div style="flex: 1; text-align: center; border-right: 1px solid rgba(255,255,255,0.1);">
+                <span style="font-size: 10px; opacity: 0.6; display: block;">{idx['name']}</span>
+                <span style="font-size: 14px; font-weight: bold;">₹{idx['price']:,.2f}</span>
+                <span style="color: {color}; font-size: 12px;">{symbol} {abs(idx['change']):.2f}%</span>
+            </div>
+            """
+        st.markdown(f"""
+        <div style="display: flex; background: rgba(255,255,255,0.03); padding: 5px 0; border-radius: 8px; margin-bottom: 5px; border: 1px solid rgba(255,255,255,0.05);">
+            {idx_html}
+        </div>
+        """, unsafe_allow_html=True)
+
+# 2. Add Marquee UI (20 Stocks)
 marquee_placeholder = st.empty()
-
-# Show loading placeholder immediately (non-blocking)
-marquee_placeholder.markdown("""
-<div class="marquee">
-    <div class="marquee-content">
-        <span class="marquee-item" style="color:#FFA500;">⚡ Loading live market data...</span>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# Try to fetch real data (cached, so won't block on subsequent loads)
-try:
-    marquee_data = get_marquee_data()
-    if marquee_data and len(marquee_data) > 0:
-        items_html = ""
-        for item in marquee_data:
-            color = "#00FF00" if item['change'] >= 0 else "#FF4B4B"
-            icon = "🟢" if item['change'] >= 0 else "🔴"
-            items_html += f'<span class="marquee-item" style="color:{color};">{icon} {item["name"]}: ₹{item["price"]:,.2f} ({item["change"]:+.2f}%)</span>'
-        
-        # Update with real data
-        marquee_placeholder.markdown(f"""
+if marquee_data:
+    stocks_to_show = [d for d in marquee_data if d['name'] not in ["NIFTY 50", "BANK NIFTY", "SENSEX"]]
+    items_html = ""
+    for item in stocks_to_show:
+        color = "#00FF00" if item['change'] >= 0 else "#FF4B4B"
+        icon = "🟢" if item['change'] >= 0 else "🔴"
+        items_html += f'<span class="marquee-item" style="color:{color};">{icon} {item["name"]}: ₹{item["price"]:,.2f} ({item["change"]:+.2f}%)</span>'
+    
+    marquee_placeholder.markdown(f"""
         <div class="marquee">
             <div class="marquee-content">
                 {items_html} {items_html}
             </div>
         </div>
         """, unsafe_allow_html=True)
-    else:
-        # Keep loading message if no data
-        pass
-except Exception as e:
-    # On error, show static fallback
+else:
+    # Fallback if no data yet
     marquee_placeholder.markdown("""
-    <div class="marquee">
-        <div class="marquee-content">
-            <span class="marquee-item" style="color:#00FF00;">🟢 NIFTY 50: LIVE</span>
-            <span class="marquee-item" style="color:#00FF00;">🟢 SENSEX: LIVE</span>
-            <span class="marquee-item" style="color:#00FF00;">🟢 BANK NIFTY: LIVE</span>
-            <span class="marquee-item" style="color:#FFA500;">⚡ Market data temporarily unavailable</span>
-        </div>
-    </div>
+        <div class="marquee"><div class="marquee-content">
+            <span class="marquee-item" style="color:#FFA500;">⚡ System synchronizing... Connecting to NSE/BSE Feed</span>
+        </div></div>
     """, unsafe_allow_html=True)
 
 # Auto-Refresh Logic (Hidden) - Refreshes price data every 60s
@@ -363,7 +368,7 @@ st.components.v1.html(
         window.autoRefreshSet = true;
         setInterval(function() {
             window.parent.location.reload();
-        }, 60000); 
+        }, 120000); 
     }
     </script>
     """,
