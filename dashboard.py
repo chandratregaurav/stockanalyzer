@@ -14,7 +14,7 @@ from stock_analyzer import StockAnalyzer
 import threading
 
 # --- Page Configuration (MUST be first Streamlit command) ---
-st.set_page_config(page_title="StockPro AI v1.2", layout="wide", page_icon="📈")
+st.set_page_config(page_title="StockPro AI v1.2.1", layout="wide", page_icon="📈")
 
 # SEO Meta Tags Integration (Hidden from UI)
 st.markdown("""
@@ -283,7 +283,7 @@ def get_market_sentiment():
     except Exception as e:
         return "MARKET DATA UNAVAILABLE", 0, "rgba(255,255,255,0.1)", ""
 
-@st.cache_data(ttl=120)
+@st.cache_data(ttl=60)  # CACHE BUSTED - v1.2.1
 def get_marquee_data():
     """Fetches real-time prices for marquee indices and stocks."""
     # Reduced symbol list for faster loading
