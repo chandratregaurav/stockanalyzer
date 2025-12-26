@@ -922,21 +922,36 @@ elif page == "🔍 Deep Analyzer":
     
     with sc2:
         st.write("**🔍 Search Stock**")
-        st.selectbox(
-            "Search Ticker or Company Name",
-            TICKER_OPTIONS,
-            key="master_search",
-            label_visibility="collapsed",
-            on_change=trigger_analysis
-        )
+        search_mode = st.radio("Search Mode", ["📋 From List", "✍️ Manual Entry"], horizontal=True, label_visibility="collapsed", key="search_mode")
         
-    # Process Ticker from autocomplete
-    if st.session_state.get('master_search'):
+        if search_mode == "📋 From List":
+            st.selectbox(
+                "Search Ticker or Company Name",
+                TICKER_OPTIONS,
+                key="master_search",
+                label_visibility="collapsed",
+                on_change=trigger_analysis
+            )
+            manual_ticker = None
+        else:
+            manual_ticker = st.text_input(
+                "Enter Stock Symbol (e.g., ELITECON, RELIANCE, TCS)",
+                key="manual_ticker_input",
+                placeholder="Type stock symbol...",
+                label_visibility="collapsed"
+            ).strip().upper()
+        
+    # Process Ticker from autocomplete OR manual input
+    if search_mode == "✍️ Manual Entry" and manual_ticker:
+        # Manual entry mode - use whatever user typed
+        suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
+        ticker_input = f"{manual_ticker}{suffix}"
+        st.markdown(f"<html><head><title>Analyzing {manual_ticker} | Stock Analysis Pro</title></head></html>", unsafe_allow_html=True)
+    elif st.session_state.get('master_search'):
+        # Selectbox mode - use pre-loaded ticker
         sym = st.session_state['master_search'].split(' - ')[0]
         suffix = ".NS" if st.session_state.get('exchange', 'NSE') == "NSE" else ".BO"
         ticker_input = f"{sym}{suffix}"
-        
-        # SEO Injection: Update Title Tag
         st.markdown(f"<html><head><title>Analyzing {sym} | Stock Analysis Pro</title></head></html>", unsafe_allow_html=True)
     else:
         ticker_input = "RELIANCE.NS"
